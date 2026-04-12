@@ -1,3 +1,10 @@
+# 1.0.0 (2026-04-12)
+
+
+### Bug Fixes
+
+* **dependabot:** fix dir ([64c7f40](https://github.com/zznathans/bebot-helm/commit/64c7f40bf1db86ae9bd92947402d28f982cc0b52))
+
 ## [1.0.17](https://github.com/zznathans/bebot-helm/compare/1.0.16...1.0.17) (2026-04-12)
 
 
