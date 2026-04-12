@@ -1,0 +1,121 @@
+{{- range .Values.bebot.instances }}
+{{- if ne .enabled false }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ $.Release.Name }}-{{ .name }}
+  template:
+    metadata:
+      annotations:
+        checksum/conf: {{ toYaml . | sha256sum }}
+        {{- if and $.Values.bebot.mariadb.enabled $.Values.bebot.mariadb.dbSetupEnabled }}
+        checksum/db-setup: {{ include (print $.Template.BasePath "/db-setup.yaml") $ | sha256sum }}
+        {{- end }}
+      labels:
+        app: {{ $.Release.Name }}-{{ .name }}
+    spec:
+      serviceAccount: {{ $.Release.Name }}-serviceaccount-{{ .name }}
+      initContainers:
+        {{- if and (eq .createSecret false) $.Values.bebot.mariadb.enabled $.Values.bebot.mariadb.dbSetupEnabled }}
+        - name: db-setup
+          image: mariadb:11.4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mariadb -h "${MARIADB_HOST}" -uroot -e "
+                CREATE DATABASE IF NOT EXISTS \`${MARIADB_DATABASE}\`;
+                CREATE USER IF NOT EXISTS '${MARIADB_USER}'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}';
+                ALTER USER '${MARIADB_USER}'@'%' IDENTIFIED BY '${MARIADB_PASSWORD}';
+                GRANT ALL PRIVILEGES ON \`${MARIADB_DATABASE}\`.* TO '${MARIADB_USER}'@'%';
+                FLUSH PRIVILEGES;
+              "
+          env:
+            - name: MARIADB_HOST
+              value: "{{ if $.Values.bebot.mariadb.perInstance }}{{ $.Release.Name }}-mariadb-{{ .name }}{{ else }}{{ $.Release.Name }}-mariadb{{ end }}"
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-mariadb-root
+                  key: root-password
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_user
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_password
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_database
+        {{- end }}
+        - name: copy-configs
+          image: busybox:1.36
+          command: ["/bin/sh", "-c"]
+          args:
+            - cp /secret/* /conf/
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+          volumeMounts:
+            - name: bebot-conf-empty
+              mountPath: /conf
+            - name: bebot-conf-secret
+              mountPath: /secret
+              readOnly: true
+      containers:
+        - name: {{ $.Release.Name }}
+          image: {{ $.Values.bebot.imageRepository }}:{{ $.Values.bebot.imageTag }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: bebot-conf-empty
+              mountPath: /BeBot/Conf
+      volumes:
+        - name: bebot-conf-empty
+          emptyDir: {}
+        - name: bebot-conf-secret
+          secret:
+            secretName: {{ $.Release.Name }}-conf-{{ .name }}
+            items:
+              - key: Mysql.conf
+                path: Mysql.conf
+              - key: Bot.conf
+                path: Bot.conf
+              - key: Aoaccounts.conf
+                path: Aoaccounts.conf
+              - key: ServerList.php
+                path: ServerList.php
+---
+{{- end }}
+{{- end }}

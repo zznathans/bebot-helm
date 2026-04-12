@@ -1,0 +1,56 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ $.Release.Name }}-{{ $instance.name }}
+        {{- if $.Values.bebot.mariadb.backup.enabled }}
+        - podSelector:
+            matchLabels:
+              app: {{ $.Release.Name }}-mariadb-backup-{{ $instance.name }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 3306
+---
+{{- end }}
+{{- else }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-mariadb
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}-mariadb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- range .Values.bebot.instances }}
+        - podSelector:
+            matchLabels:
+              app: {{ $.Release.Name }}-{{ .name }}
+        {{- end }}
+        {{- if .Values.bebot.mariadb.backup.enabled }}
+        - podSelector:
+            matchLabels:
+              app: {{ .Release.Name }}-mariadb-backup
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 3306
+{{- end }}
+{{- end }}

@@ -1,0 +1,6 @@
+{{- if .Values.bebot.extraObjects }}
+{{- range .Values.bebot.extraObjects }}
+{{ toYaml . | nindent 0 }}
+---
+{{- end }}
+{{- end }}

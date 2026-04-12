@@ -1,0 +1,34 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.persistence.enabled }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bebot-mariadb-pvc-{{ $instance.name }}
+spec:
+  accessModes:
+    - {{ $.Values.bebot.mariadb.persistence.accessMode | default "ReadWriteOnce" }}
+  {{- if $.Values.bebot.mariadb.persistence.storageClass }}
+  storageClassName: {{ $.Values.bebot.mariadb.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $.Values.bebot.mariadb.persistence.size | default "1Gi" }}
+---
+{{- end }}
+{{- else }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bebot-mariadb-pvc
+spec:
+  accessModes:
+    - {{ .Values.bebot.mariadb.persistence.accessMode | default "ReadWriteOnce" }}
+  {{- if .Values.bebot.mariadb.persistence.storageClass }}
+  storageClassName: {{ .Values.bebot.mariadb.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.bebot.mariadb.persistence.size | default "1Gi" }}
+{{- end }}
+{{- end }}

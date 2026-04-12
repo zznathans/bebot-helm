@@ -1,0 +1,78 @@
+<?php
+  /*
+    These are the general settings of the bot:
+  */
+
+  $ao_username = "{{ .ao_username }}";               // Account username
+  $ao_password = "{{ .ao_password }}";               // Account password
+  $bot_name = "{{ .bot_name }}";                     // Name of the bot-character
+  $dimension = "{{ .dimension }}";                   // Server dimension (0, 5 or 6 for AO + 90, 95 or 96 for Proxy)
+  $guild = "{{ .guild | default "" }}";              // Name of the guild running the bot (AOC only, leave empty for AO)
+
+/*
+    Suggested values for owner and super_admin:
+    We suggest that the owner should be the main character on the
+    account for $ao_username.
+    super_admins should be alts on the same account.
+
+    Defining a superadmin in the config file prevents their removal and banning.
+    You are able to add more superadmins with the ingame interface.
+    Superadmins defined in game are able to be removed and banned.
+*/
+  $owner = "{{ .botOwner }}";                        // Owner of the bot.
+{{- range .superAdmins }}
+  $super_admin["{{ . }}"] = true;// Bot superadmins.
+{{- end }}
+
+  $slave = "{{ .slave | default "" }}";              // Name of slave bot if any (empty default)
+  $periph = {{ .periph | default 0 }};               // Number of peripheral bot(s) if any (0 default)
+{{- range .otherBots }}
+  $other_bots["{{ . }}"] = true;
+{{- end }}
+
+
+  $guildbot = {{ if .raidbot }}false{{ else }}true{{ end }};  // false if raidbot, true if guildbot
+  $guild_id = {{ .guildId }};                        // Only for AO guildbots! See ReadMe.txt on how to find the id.
+
+
+  $log = "{{ .log | default "chat" }}";              // Logging level: all/chat/off
+  $log_path = "{{ .logPath | default "./log" }}";    // Relative/absolute path for log files
+  $log_timestamp = "{{ .logTimestamp | default "none" }}";  // Valid options: datetime, date, time, none
+
+
+  /*
+  The next two entries define a list of additional core and module directories to be loaded after the core/ and custom/core/
+  and the module/ and custom/module/ directories. The list is parsed as a comma-separated list relative to the base directory
+  of the bot, without any / at the end of the directory names.
+  */
+  $core_directories = "{{ .coreDirectories | default "" }}";    // Optional additional core directories
+  $module_directories = "{{ .moduleDirectories | default "" }}";  // Optional additional module directories
+
+
+  $command_prefix = "{{ .commandPrefix | default "!" }}";  // Must be in Reg-Exp format (e.g. for "." use "\.")
+                                                            // Cannot be more than one character
+
+
+  $cron_delay = {{ .cronDelay | default 30 }};              // Seconds before cron jobs execute for the first time
+  $tell_delay = {{ .tellDelay | default 2222 }};            // Milliseconds between tells (anti-flooding)
+  $reconnect_time = {{ .reconnectTime | default 60 }};      // Seconds to wait before auto-reconnect after an error
+
+  if(is_numeric($dimension))
+    $max_blobsize = 12000;            // Maximum size of text blobs in bytes (AO)
+  else
+    $max_blobsize = 8000;             // Maximum size of text blobs in bytes (AoC)
+
+  $accessallbots = {{ if .accessAllBots }}TRUE{{ else }}FALSE{{ end }};  // Allow access to all bots in modules like BotStatistics
+
+
+  /*
+  WARNING! Enabling proxies will allow you to pull information from web servers if you have been blocked.
+  The more proxy addresses you have, the slower each lookup will be. It is recommended that no more than
+  one proxy be added at any given time. Proxies will only be used as a fallback (if the first lookup fails).
+  Format for $proxy_server_address: IP:PORT (comma-separated list)
+  Example: $proxy_server_address = "4.2.2.2:80,4.2.2.3:80";
+  */
+  $use_proxy_server = {{ if .useProxyServer }}true{{ else }}false{{ end }};  // Enable simple web proxy server for HTTP lookups
+  $proxy_server_address = "{{ .proxyServerAddress | default "" }}";          // Proxy server address(es) to use
+
+?>

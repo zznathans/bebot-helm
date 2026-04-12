@@ -1,0 +1,46 @@
+# Example: Database backups to an S3-compatible bucket
+#
+# Dumps each database to a separate .sql file, then uploads the entire dump
+# directory to S3 using `aws s3 sync`. No PVC is created — dumps are written
+# to an emptyDir and discarded after upload.
+#
+# S3 credentials can be provided via a manually-created K8s Secret, or
+# sourced from GCP Secret Manager using the externalSecret block.
+#
+# Prerequisite (manual credentials secret):
+#   kubectl create secret generic my-s3-creds \
+#     --from-literal=access-key-id=AKIA... \
+#     --from-literal=secret-access-key=...
+#
+# Prerequisite (ExternalSecret credentials):
+#   python tools/generate-gcp-secret.py s3-credentials | \
+#     gcloud secrets versions add my-bebot-s3-creds --data-file=-
+#
+# Extend an existing values file with this overlay:
+#   helm upgrade my-bebot . \
+#     -f examples/values-external-secrets.yaml \
+#     -f examples/values-backup-s3.yaml
+
+bebot:
+  mariadb:
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"   # 2am daily
+      destination: s3
+      s3:
+        bucket: my-bebot-backups
+        region: us-east-1
+        path: backups/bebot
+        # endpoint: ""         # uncomment for non-AWS providers (MinIO, Backblaze B2, etc.)
+        # image: amazon/aws-cli:2   # override if using a custom S3 CLI image
+        credentialsSecret: my-s3-creds   # K8s Secret with access-key-id and secret-access-key
+
+        # Remove the credentialsSecret above and use externalSecret instead
+        # to pull S3 credentials from GCP Secret Manager:
+        # credentialsSecret: my-s3-creds   # name of the Secret the ExternalSecret will create
+        # externalSecret:
+        #   enabled: true
+        #   gcpSecretName: my-bebot-s3-creds
+        #   secretStoreName: gcp-clusterstore
+        #   secretStoreKind: ClusterSecretStore
+        #   secretRefreshInterval: 1h

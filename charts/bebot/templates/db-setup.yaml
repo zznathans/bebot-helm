@@ -1,0 +1,38 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.dbSetupEnabled }}
+{{- if not .Values.bebot.mariadb.perInstance }}
+{{- $hasBakedInstances := false }}
+{{- range .Values.bebot.instances }}{{- if ne .createSecret false }}{{- $hasBakedInstances = true }}{{- end }}{{- end }}
+{{- if $hasBakedInstances }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-db-setup
+stringData:
+{{- range .Values.bebot.instances }}
+{{- if ne .createSecret false }}
+  db_setup_{{ .name }}.sql: |-
+    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase }}`;
+    CREATE USER IF NOT EXISTS '{{ .mariadbUser }}'@'%' IDENTIFIED BY '{{ .mariadbPassword }}';
+    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase }}`.* TO '{{ .mariadbUser }}'@'%';
+    FLUSH PRIVILEGES;
+{{- end }}
+{{- end }}
+{{- end }}
+{{- else }}
+{{- range .Values.bebot.instances }}
+{{- if ne .createSecret false }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $.Release.Name }}-db-setup-{{ .name }}
+stringData:
+  db_setup.sql: |-
+    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase }}`;
+    CREATE USER IF NOT EXISTS '{{ .mariadbUser }}'@'%' IDENTIFIED BY '{{ .mariadbPassword }}';
+    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase }}`.* TO '{{ .mariadbUser }}'@'%';
+    FLUSH PRIVILEGES;
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

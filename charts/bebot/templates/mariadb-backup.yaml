@@ -1,0 +1,287 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.backup.enabled }}
+{{- $destination := .Values.bebot.mariadb.backup.destination | default "pvc" }}
+{{- if .Values.bebot.mariadb.perInstance }}
+
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $.Release.Name }}-mariadb-backup-{{ $instance.name }}
+spec:
+  schedule: "{{ $.Values.bebot.mariadb.backup.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ $.Release.Name }}-mariadb-backup-{{ $instance.name }}
+        spec:
+          {{- if eq $destination "s3" }}
+          initContainers:
+            - name: mysqldump
+              image: mariadb:11.4
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  for db in $(mysql -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                    echo "Dumping ${db}..."
+                    mysqldump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          containers:
+            - name: s3-upload
+              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2" }}
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      key: access-key-id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      key: secret-access-key
+                - name: AWS_DEFAULT_REGION
+                  value: {{ $.Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
+                {{- if $.Values.bebot.mariadb.backup.s3.endpoint }}
+                - name: AWS_ENDPOINT_URL
+                  value: {{ $.Values.bebot.mariadb.backup.s3.endpoint }}
+                {{- end }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  aws s3 sync /backup/ s3://{{ $.Values.bebot.mariadb.backup.s3.bucket }}/{{ $.Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          {{- else }}
+          containers:
+            - name: mariadb-backup
+              image: mariadb:11.4
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $.Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  for db in $(mysql -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                    echo "Dumping ${db}..."
+                    mysqldump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          {{- end }}
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              {{- if eq $destination "s3" }}
+              emptyDir: {}
+              {{- else }}
+              persistentVolumeClaim:
+                claimName: {{ $.Release.Name }}-mariadb-backup-pvc-{{ $instance.name }}
+              {{- end }}
+---
+{{- if ne $destination "s3" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Release.Name }}-mariadb-backup-pvc-{{ $instance.name }}
+spec:
+  accessModes:
+    - {{ $.Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}
+  {{- if $.Values.bebot.mariadb.backup.pvc.storageClass }}
+  storageClassName: {{ $.Values.bebot.mariadb.backup.pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $.Values.bebot.mariadb.backup.pvc.size | default "5Gi" }}
+---
+{{- end }}
+{{- end }}
+
+{{- else }}
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-mariadb-backup
+spec:
+  schedule: "{{ .Values.bebot.mariadb.backup.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ .Release.Name }}-mariadb-backup
+        spec:
+          {{- if eq $destination "s3" }}
+          initContainers:
+            - name: mysqldump
+              image: mariadb:11.4
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  for db in $(mysql -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                    echo "Dumping ${db}..."
+                    mysqldump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          containers:
+            - name: s3-upload
+              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2" }}
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      key: access-key-id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      key: secret-access-key
+                - name: AWS_DEFAULT_REGION
+                  value: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
+                {{- if .Values.bebot.mariadb.backup.s3.endpoint }}
+                - name: AWS_ENDPOINT_URL
+                  value: {{ .Values.bebot.mariadb.backup.s3.endpoint }}
+                {{- end }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  aws s3 sync /backup/ s3://{{ .Values.bebot.mariadb.backup.s3.bucket }}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          {{- else }}
+          containers:
+            - name: mariadb-backup
+              image: mariadb:11.4
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  for db in $(mysql -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                    echo "Dumping ${db}..."
+                    mysqldump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          {{- end }}
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              {{- if eq $destination "s3" }}
+              emptyDir: {}
+              {{- else }}
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-mariadb-backup-pvc
+              {{- end }}
+---
+{{- if ne $destination "s3" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-mariadb-backup-pvc
+spec:
+  accessModes:
+    - {{ .Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}
+  {{- if .Values.bebot.mariadb.backup.pvc.storageClass }}
+  storageClassName: {{ .Values.bebot.mariadb.backup.pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.bebot.mariadb.backup.pvc.size | default "5Gi" }}
+{{- end }}
+
+{{- end }}
+{{- end }}

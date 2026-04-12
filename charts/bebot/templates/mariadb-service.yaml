@@ -1,0 +1,30 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+    app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+---
+{{- end }}
+{{- else }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mariadb
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+    app: {{ .Release.Name }}-mariadb
+{{- end }}
+{{- end }}

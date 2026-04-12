@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  # Minimum needed to generate the app installation token.
+  # All write operations (push, release, PR comments) are performed
+  # using the app token, not GITHUB_TOKEN.
+  contents: read
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    # Skip if the commit was made by the release bot to avoid loops.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      # Generate a short-lived installation token from a GitHub App.
+      # This avoids storing a long-lived PAT and allows bypassing branch
+      # protection rules when the app is added as a bypass actor.
+      #
+      # Prerequisites:
+      #   1. Create a GitHub App with permissions:
+      #        Contents: read/write, Pull requests: read/write,
+      #        Issues: read/write, Metadata: read
+      #   2. Install the app on this repository.
+      #   3. Store the App ID as repository variable RELEASE_APP_ID.
+      #   4. Store the private key (.pem contents) as secret RELEASE_APP_PRIVATE_KEY.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          # Full history is required for semantic-release to walk commits.
+          fetch-depth: 0
+          # Use the app token so pushed commits/tags are attributed to the app
+          # and can satisfy branch protection bypass rules.
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install semantic-release plugins
+        run: |
+          npm install -g \
+            semantic-release \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            @semantic-release/changelog \
+            @semantic-release/exec \
+            @semantic-release/git \
+            @semantic-release/github
+
+      - name: Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

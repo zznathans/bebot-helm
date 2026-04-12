@@ -1,0 +1,21 @@
+extends: default
+
+# Helm templates use {{ }} syntax that yamllint cannot parse — exclude them.
+ignore: |
+  templates/
+  index.yaml
+
+rules:
+  line-length:
+    max: 150
+    level: warning
+  truthy:
+    # Allow both quoted and unquoted booleans in values files.
+    allowed-values: ['true', 'false']
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  braces:
+    forbid: false
+  document-start: disable

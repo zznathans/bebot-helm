@@ -1,0 +1,10 @@
+---
+apiVersion: v2
+name: bebot
+
+description: helm chart for bebot
+type: application
+
+appVersion: 1.0.17
+
+version: 1.0.17

@@ -1,0 +1,22 @@
+# Example: Database backups to a PersistentVolumeClaim
+#
+# Enables the backup CronJob. Each database is dumped to a separate .sql file
+# on a PVC, named {database}_{timestamp}.sql.
+#
+# Extend an existing values file with this overlay:
+#   helm upgrade my-bebot . \
+#     -f examples/values-external-secrets.yaml \
+#     -f examples/values-backup-pvc.yaml
+#
+# Or merge the backup block into your own values file.
+
+bebot:
+  mariadb:
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"   # 2am daily
+      destination: pvc
+      pvc:
+        size: 10Gi
+        storageClass: ""       # leave empty to use cluster default
+        accessMode: ReadWriteOnce

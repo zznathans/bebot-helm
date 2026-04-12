@@ -1,0 +1,116 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- $hasBakedInstances := false }}
+{{- range .Values.bebot.instances }}{{- if ne .createSecret false }}{{- $hasBakedInstances = true }}{{- end }}{{- end }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11.4
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-mariadb-root
+                  key: root-password
+          ports:
+            - containerPort: 3306
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+      {{- if $.Values.bebot.mariadb.persistence.enabled }}
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+          {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
+            - name: mariadb-init
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+          {{- end }}
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: bebot-mariadb-pvc-{{ $instance.name }}
+      {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
+        - name: mariadb-init
+          secret:
+            secretName: {{ $.Release.Name }}-db-setup-{{ $instance.name }}
+      {{- end }}
+      {{- end }}
+---
+{{- end }}
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mariadb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mariadb
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11.4
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mariadb-root
+                  key: root-password
+          ports:
+            - containerPort: 3306
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+      {{- if .Values.bebot.mariadb.persistence.enabled }}
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+          {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+            - name: mariadb-init
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+          {{- end }}
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: bebot-mariadb-pvc
+      {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+        - name: mariadb-init
+          secret:
+            secretName: {{ .Release.Name }}-db-setup
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
