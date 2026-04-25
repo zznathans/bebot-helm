@@ -1,5 +1,5 @@
 #dockerfile:alpine_php_bebot
-FROM alpine:3.23.3
+FROM alpine:3.23.4
 RUN apk --no-cache add \
     git php83-cli php83-phar php83-curl php83-sockets php83-pdo php83-pdo_mysql \
     php83-mbstring php83-ctype php83-bcmath php83-json php83-posix php83-xml php83-simplexml \
