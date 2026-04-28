@@ -1,0 +1,11 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.metrics.enabled .Values.bebot.mariadb.metrics.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-mysql-dashboard
+  labels:
+    {{ .Values.bebot.mariadb.metrics.grafanaDashboard.label }}: "1"
+data:
+  mysql-overview.json: |-
+{{ .Files.Get "files/grafana-dashboard-mysql.json" | indent 4 }}
+{{- end }}

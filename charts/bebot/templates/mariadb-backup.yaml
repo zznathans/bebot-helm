@@ -1,5 +1,16 @@
 {{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.backup.enabled }}
 {{- $destination := .Values.bebot.mariadb.backup.destination | default "pvc" }}
+{{- if not (has $destination (list "pvc" "s3")) }}
+  {{- fail (printf "bebot.mariadb.backup.destination must be \"pvc\" or \"s3\", got %q" $destination) }}
+{{- end }}
+{{- if eq $destination "s3" }}
+  {{- if not .Values.bebot.mariadb.backup.s3.bucket }}
+    {{- fail "bebot.mariadb.backup.s3.bucket is required when destination is \"s3\"" }}
+  {{- end }}
+  {{- if and (not .Values.bebot.mariadb.backup.s3.credentialsSecret) (not .Values.bebot.mariadb.backup.s3.externalSecret.enabled) }}
+    {{- fail "bebot.mariadb.backup.s3.credentialsSecret is required when destination is \"s3\" and externalSecret.enabled is false" }}
+  {{- end }}
+{{- end }}
 {{- if .Values.bebot.mariadb.perInstance }}
 
 {{- range $i, $instance := .Values.bebot.instances }}
