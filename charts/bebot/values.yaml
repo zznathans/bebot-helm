@@ -85,7 +85,7 @@ bebot:
   # Container image registry and repository for the bebot image.
   imageRepository: ghcr.io/zznathans/bebot-helm
   # Image tag to deploy. Use a specific digest or tag in production for reproducibility.
-  imageTag: "main"
+  imageTag: "1.0.6"
   # List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public.
   imagePullSecrets: []
   # imagePullSecrets:

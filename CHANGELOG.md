@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/zznathans/bebot-helm/compare/1.0.5...1.0.6) (2026-04-28)
+
+
+### Bug Fixes
+
+* **docker:** pin image name ([d9e6b93](https://github.com/zznathans/bebot-helm/commit/d9e6b9302b8d8e43c482ff677046dbecf0d0e72b))
+
 ## [1.0.5](https://github.com/zznathans/bebot-helm/compare/1.0.4...1.0.5) (2026-04-28)
 
 
