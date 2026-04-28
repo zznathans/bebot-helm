@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/zznathans/bebot-helm/compare/1.0.4...1.0.5) (2026-04-28)
+
+
+### Bug Fixes
+
+* **mariadb:** add metrics ([5f7eb3c](https://github.com/zznathans/bebot-helm/commit/5f7eb3cdcf08dccee4c15562422897caba71cca6))
+
 ## [1.0.4](https://github.com/zznathans/bebot-helm/compare/1.0.3...1.0.4) (2026-04-28)
 
 
