@@ -11,7 +11,7 @@ helm chart for bebot
 | bebot.extraObjects | list | `[]` | Raw Kubernetes objects to render alongside chart-managed resources. Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values. |
 | bebot.imagePullSecrets | list | `[]` | List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public. |
 | bebot.imageRepository | string | `"ghcr.io/zznathans/bebot-helm"` | Container image registry and repository for the bebot image. |
-| bebot.imageTag | string | `"1.0.8"` | Image tag to deploy. Use a specific digest or tag in production for reproducibility. |
+| bebot.imageTag | string | `"1.0.9"` | Image tag to deploy. Use a specific digest or tag in production for reproducibility. |
 | bebot.instances[0].ao_username | string | `"ao_account"` |  |
 | bebot.instances[0].botOwner | string | `"OwnerCharacter"` |  |
 | bebot.instances[0].bot_name | string | `"BotCharacter"` |  |
