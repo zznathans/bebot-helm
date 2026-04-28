@@ -1,3 +1,10 @@
+## [1.0.9](https://github.com/zznathans/bebot-helm/compare/1.0.8...1.0.9) (2026-04-28)
+
+
+### Bug Fixes
+
+* **metrics:** add servicemonitor ([43a3d60](https://github.com/zznathans/bebot-helm/commit/43a3d6015b5e643c3eca916fb9825d00eb766743))
+
 ## [1.0.8](https://github.com/zznathans/bebot-helm/compare/1.0.7...1.0.8) (2026-04-28)
 
 
