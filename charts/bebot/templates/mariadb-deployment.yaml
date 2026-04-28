@@ -40,6 +40,10 @@ spec:
         {{- if $.Values.bebot.mariadb.metrics.enabled }}
         - name: mysqld-exporter
           image: {{ $.Values.bebot.mariadb.metrics.image }}
+          command:
+            - sh
+            - -c
+            - "until nc -z 127.0.0.1 3306; do sleep 2; done && exec /bin/mysqld_exporter"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -118,6 +122,10 @@ spec:
         {{- if .Values.bebot.mariadb.metrics.enabled }}
         - name: mysqld-exporter
           image: {{ .Values.bebot.mariadb.metrics.image }}
+          command:
+            - sh
+            - -c
+            - "until nc -z 127.0.0.1 3306; do sleep 2; done && exec /bin/mysqld_exporter"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
