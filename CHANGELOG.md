@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/zznathans/bebot-helm/compare/1.0.9...1.1.0) (2026-04-28)
+
+
+### Bug Fixes
+
+* **ci:** bump ([549f6db](https://github.com/zznathans/bebot-helm/commit/549f6db6ec462a050081d0ea689693eac5225361))
+
+
+### Features
+
+* **tests, docs:** add tests ([55e38af](https://github.com/zznathans/bebot-helm/commit/55e38af6f6cdfeb5d829dbfff8c5f47885883f53))
+* **tests, docs:** add tests ([76d3947](https://github.com/zznathans/bebot-helm/commit/76d3947d6e575a98d3c15ce17ea1ebaa58668891))
+
 ## [1.0.9](https://github.com/zznathans/bebot-helm/compare/1.0.8...1.0.9) (2026-04-28)
 
 
