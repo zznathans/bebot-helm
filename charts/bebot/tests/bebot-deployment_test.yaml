@@ -1,0 +1,84 @@
+suite: bebot deployment
+templates:
+  - bebot-deployment.yaml
+  - db-setup.yaml
+tests:
+  - it: renders a Deployment for the default instance
+    template: bebot-deployment.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-mybot
+
+  - it: sets the bot image from values
+    template: bebot-deployment.yaml
+    set:
+      bebot.imageRepository: example.io/myrepo
+      bebot.imageTag: test-tag
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example.io/myrepo:test-tag
+
+  - it: uses resources from values
+    template: bebot-deployment.yaml
+    set:
+      bebot.resources.requests.cpu: 200m
+      bebot.resources.limits.memory: 512Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 200m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 512Mi
+
+  - it: does not render disabled instances
+    template: bebot-deployment.yaml
+    set:
+      bebot.instances[0].enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders multiple instances
+    template: bebot-deployment.yaml
+    set:
+      bebot.instances:
+        - name: bot1
+          enabled: true
+          guildId: 1
+          mariadbUser: user1
+          mariadbDatabase: db1
+          ao_username: acct1
+          bot_name: Bot1
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner1
+          superAdmins: []
+          createSecret: true
+        - name: bot2
+          enabled: true
+          guildId: 2
+          mariadbUser: user2
+          mariadbDatabase: db2
+          ao_username: acct2
+          bot_name: Bot2
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner2
+          superAdmins: []
+          createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: includes checksum annotation for config changes
+    template: bebot-deployment.yaml
+    asserts:
+      - isNotEmpty:
+          path: spec.template.metadata.annotations["checksum/conf"]

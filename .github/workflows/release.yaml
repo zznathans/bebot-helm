@@ -46,6 +46,13 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install helm-docs
+        run: |
+          curl -Lo /tmp/helm-docs.tar.gz \
+            https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz
+          tar -xzf /tmp/helm-docs.tar.gz -C /tmp helm-docs
+          sudo mv /tmp/helm-docs /usr/local/bin/helm-docs
+
       - name: Install semantic-release plugins
         run: |
           npm install -g \

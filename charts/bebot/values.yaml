@@ -1,95 +1,95 @@
 bebot:
   mariadb:
-    # Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database.
+    # -- Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database.
     enabled: true
-    # When true, create a separate MariaDB deployment and PVC per bot instance. When false, a use a single shared MariaDB.
+    # -- When true, create a separate MariaDB deployment and PVC per bot instance. When false, use a single shared MariaDB.
     perInstance: false
     persistence:
-      # Enable persistent storage for MariaDB data. If false, data is lost on pod restart.
+      # -- Enable persistent storage for MariaDB data. If false, data is lost on pod restart.
       enabled: true
-      # Size of the PersistentVolumeClaim for MariaDB data.
+      # -- Size of the PersistentVolumeClaim for MariaDB data.
       size: 1Gi
-      # StorageClass to use for the PVC. Leave empty to use the cluster default.
+      # -- StorageClass to use for the PVC. Leave empty to use the cluster default.
       storageClass: ""
-      # Access mode for the PVC. RWO is required for most block storage backends.
+      # -- Access mode for the PVC. RWO is required for most block storage backends.
       accessMode: ReadWriteOnce
-    # MySQL root user name to create.
+    # -- MySQL root user name to create.
     rootUser: "root"
-    # Host mask for the root user grant (% = allow from any host).
+    # -- Host mask for the root user grant (% = allow from any host).
     rootHost: "%"
-    # Run the db-setup job to create per-instance databases and users on first deploy.
-    # Disable if managing database setup externally.
+    # -- Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally.
     dbSetupEnabled: true
     metrics:
-      # Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104.
+      # -- Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104.
       enabled: false
-      # Container image for the mysqld_exporter sidecar.
+      # -- Container image for the mysqld_exporter sidecar.
       image: "prom/mysqld-exporter:v0.16.0"
+      grafanaDashboard:
+        # -- Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment.
+        enabled: false
+        # -- Label the Grafana sidecar uses to discover dashboard ConfigMaps.
+        label: grafana_dashboard
     backup:
-      # Enable a CronJob to periodically dump each database to SQL files.
+      # -- Enable a CronJob to periodically dump each database to SQL files.
       enabled: false
-      # Cron schedule for the backup job (default: 2am daily).
+      # -- Cron schedule for the backup job (default: 2am daily).
       schedule: "0 2 * * *"
-      # Where to send backups: "pvc" stores dumps on a PersistentVolumeClaim,
-      # "s3" dumps to an emptyDir then uploads to an S3-compatible bucket.
+      # -- Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` dumps to an emptyDir then uploads to an S3-compatible bucket.
       destination: pvc
       pvc:
-        # Size of the PVC used to store backup dumps.
+        # -- Size of the PVC used to store backup dumps.
         size: 5Gi
-        # StorageClass for the backup PVC. Leave empty to use the cluster default.
+        # -- StorageClass for the backup PVC. Leave empty to use the cluster default.
         storageClass: ""
-        # Access mode for the backup PVC.
+        # -- Access mode for the backup PVC.
         accessMode: ReadWriteOnce
       s3:
-        # S3 bucket name to upload dumps to.
+        # -- S3 bucket name to upload dumps to.
         bucket: ""
-        # AWS region (or region of your S3-compatible provider).
+        # -- AWS region (or region of your S3-compatible provider).
         region: "us-east-1"
-        # Optional: override endpoint URL for non-AWS providers (MinIO, Backblaze B2, etc.).
+        # -- Optional: override endpoint URL for non-AWS providers (MinIO, Backblaze B2, etc.).
         endpoint: ""
-        # Key prefix/path within the bucket where dumps are written.
+        # -- Key prefix/path within the bucket where dumps are written.
         path: "backups/bebot"
-        # Container image used to perform the S3 upload. Must have the aws CLI available.
-        # Override if using a custom image or a different S3-compatible CLI tool.
+        # -- Container image used to perform the S3 upload. Must have the aws CLI available.
         image: "amazon/aws-cli:2"
-        # Name of the K8s Secret containing AWS credentials.
-        # Secret must have keys: access-key-id and secret-access-key.
-        # This secret can be created manually or managed by the externalSecret block below.
+        # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
         credentialsSecret: ""
         externalSecret:
-          # When true, create an ExternalSecret to populate credentialsSecret from an external store.
-          # When false (default), the secret named by credentialsSecret must already exist.
+          # -- When true, create an ExternalSecret to populate credentialsSecret from an external store. When false (default), the secret named by credentialsSecret must already exist.
           enabled: false
-          # Name of the secret in the external store containing access-key-id and secret-access-key.
           # gcpSecretName: ""
-          # ExternalSecrets store name.
           # secretStoreName: gcp-clusterstore
-          # ExternalSecrets store kind: SecretStore or ClusterSecretStore.
           # secretStoreKind: ClusterSecretStore
-          # How often to refresh the secret from the external store.
           # secretRefreshInterval: 1h
 
     # Controls how the MariaDB root credentials secret is managed.
     # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).
     # When false: an ExternalSecret is created instead — requires gcpSecretName and store settings below.
     # createSecret: true
-    # Name of the GCP secret containing root-password and root-user keys (used when createSecret: false).
     # gcpSecretName: ao-bebot-mariadb-root
-    # Name of the ExternalSecrets SecretStore or ClusterSecretStore.
     # secretStoreName: gcp-clusterstore
-    # Kind of the secret store: SecretStore or ClusterSecretStore.
     # secretStoreKind: ClusterSecretStore
-    # How often the ExternalSecret should refresh from GCP.
     # secretRefreshInterval: 1h
 
-  # Container image registry and repository for the bebot image.
+  # -- Container image registry and repository for the bebot image.
   imageRepository: ghcr.io/zznathans/bebot-helm
-  # Image tag to deploy. Use a specific digest or tag in production for reproducibility.
+  # -- Image tag to deploy. Use a specific digest or tag in production for reproducibility.
   imageTag: "1.0.9"
-  # List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public.
+  # -- List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public.
   imagePullSecrets: []
   # imagePullSecrets:
   #   - my-regcred
+
+  # -- Resource requests and limits for the bot container. Tune based on bot module load and guild activity.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
   instances:
     - name: mybot                   # Unique name for this bot instance. Used in resource names.
@@ -108,15 +108,12 @@ bebot:
       # When true or unset: a K8s Secret is created directly by Helm using the values above.
       # When false: an ExternalSecret pulls credentials from an external store (requires gcpSecretName etc.).
       createSecret: true
-      # Uncomment and fill in the following when createSecret: false:
-      # gcpSecretName: my-bebot-secret   # GCP secret with ao_password, mariadb_user, mariadb_password, mariadb_database, mariadb_host
+      # gcpSecretName: my-bebot-secret
       # secretStoreName: gcp-clusterstore
       # secretStoreKind: ClusterSecretStore
       # secretRefreshInterval: 1h
 
-  # Raw Kubernetes objects to render alongside chart-managed resources.
-  # Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values.
-  # Example: pull image pull secret credentials from GCP Secret Manager.
+  # -- Raw Kubernetes objects to render alongside chart-managed resources. Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values.
   extraObjects: []
   # extraObjects:
   # - apiVersion: external-secrets.io/v1

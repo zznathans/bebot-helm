@@ -1,0 +1,102 @@
+suite: mariadb backup
+templates:
+  - mariadb-backup.yaml
+tests:
+  - it: renders nothing when backup is disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+      bebot.mariadb.backup.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders CronJob and PVC when destination is pvc
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: pvc
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: CronJob
+        documentIndex: 0
+      - isKind:
+          of: PersistentVolumeClaim
+        documentIndex: 1
+
+  - it: uses the configured backup schedule
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: pvc
+      bebot.mariadb.backup.schedule: "0 3 * * 0"
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 3 * * 0"
+        documentIndex: 0
+
+  - it: renders only CronJob when destination is s3
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+
+  - it: uses initContainer for mysqldump when destination is s3
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+    asserts:
+      - isNotEmpty:
+          path: spec.jobTemplate.spec.template.spec.initContainers
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].name
+          value: s3-upload
+
+  - it: fails when destination is s3 but bucket is empty
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+    asserts:
+      - failedTemplate:
+          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3"'
+
+  - it: fails when destination is s3 but credentialsSecret is empty and externalSecret is disabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+    asserts:
+      - failedTemplate:
+          errorMessage: 'bebot.mariadb.backup.s3.credentialsSecret is required when destination is "s3" and externalSecret.enabled is false'
+
+  - it: does not fail when destination is s3 and externalSecret is enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.externalSecret.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: fails when destination is an invalid value
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: nfs
+    asserts:
+      - failedTemplate:
+          errorMessage: 'bebot.mariadb.backup.destination must be "pvc" or "s3", got "nfs"'

@@ -71,3 +71,43 @@ jobs:
 
       - name: Run helm lint
         run: helm lint charts/bebot --strict
+
+  helm-docs:
+    name: Helm Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm-docs
+        run: |
+          curl -Lo /tmp/helm-docs.tar.gz \
+            https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz
+          tar -xzf /tmp/helm-docs.tar.gz -C /tmp helm-docs
+          sudo mv /tmp/helm-docs /usr/local/bin/helm-docs
+
+      - name: Run helm-docs
+        run: helm-docs --template-files VALUES.md.gotmpl --output-file VALUES.md --chart-search-root charts
+
+      - name: Fail if VALUES.md is out of date
+        run: |
+          if ! git diff --quiet charts/bebot/VALUES.md; then
+            echo "VALUES.md is out of date. Run helm-docs to regenerate it before merging."
+            git diff charts/bebot/VALUES.md
+            exit 1
+          fi
+
+  helm-unittest:
+    name: Helm Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Install helm-unittest plugin
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false
+
+      - name: Run helm unit tests
+        run: helm unittest charts/bebot
