@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/zznathans/bebot-helm/compare/1.0.6...1.0.7) (2026-04-28)
+
+
+### Bug Fixes
+
+* **ci:** wait for mysql to be up before starting metrics ([b96a7e0](https://github.com/zznathans/bebot-helm/commit/b96a7e075c99896e19baebe042525856a36d3397))
+
 ## [1.0.6](https://github.com/zznathans/bebot-helm/compare/1.0.5...1.0.6) (2026-04-28)
 
 
