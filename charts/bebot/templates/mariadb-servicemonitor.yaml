@@ -1,0 +1,30 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.metrics.enabled }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range $i, $instance := .Values.bebot.instances }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+  endpoints:
+    - port: metrics
+      interval: 30s
+---
+{{- end }}
+{{- else }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-mariadb
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mariadb
+  endpoints:
+    - port: metrics
+      interval: 30s
+{{- end }}
+{{- end }}
