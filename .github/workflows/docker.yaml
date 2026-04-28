@@ -1,9 +1,8 @@
 name: Docker
 
 on:
-  push:
-    tags:
-      - '[0-9]*'
+  release:
+    types: [published]
 
 jobs:
   build-bebot-image:

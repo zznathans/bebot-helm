@@ -43,15 +43,16 @@ spec:
           command:
             - sh
             - -c
-            - "until nc -z 127.0.0.1 3306; do sleep 2; done && exec /bin/mysqld_exporter"
+            - |
+              until nc -z 127.0.0.1 3306; do sleep 2; done
+              printf '[client]\nuser=root\npassword=%s\nhost=127.0.0.1\nport=3306\n' "$MYSQL_ROOT_PASSWORD" > /tmp/.my.cnf
+              exec /bin/mysqld_exporter --config.my-cnf=/tmp/.my.cnf
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Release.Name }}-mariadb-root
                   key: root-password
-            - name: DATA_SOURCE_NAME
-              value: "root:$(MYSQL_ROOT_PASSWORD)@(127.0.0.1:3306)/"
           ports:
             - containerPort: 9104
               name: metrics
@@ -125,15 +126,16 @@ spec:
           command:
             - sh
             - -c
-            - "until nc -z 127.0.0.1 3306; do sleep 2; done && exec /bin/mysqld_exporter"
+            - |
+              until nc -z 127.0.0.1 3306; do sleep 2; done
+              printf '[client]\nuser=root\npassword=%s\nhost=127.0.0.1\nport=3306\n' "$MYSQL_ROOT_PASSWORD" > /tmp/.my.cnf
+              exec /bin/mysqld_exporter --config.my-cnf=/tmp/.my.cnf
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-mariadb-root
                   key: root-password
-            - name: DATA_SOURCE_NAME
-              value: "root:$(MYSQL_ROOT_PASSWORD)@(127.0.0.1:3306)/"
           ports:
             - containerPort: 9104
               name: metrics
