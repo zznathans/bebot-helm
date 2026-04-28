@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/zznathans/bebot-helm/compare/1.0.7...1.0.8) (2026-04-28)
+
+
+### Bug Fixes
+
+* **docker, metrics:** fix image build ([292c5d1](https://github.com/zznathans/bebot-helm/commit/292c5d1a728bb5f14cdd99023f3f33c637682d79))
+
 ## [1.0.7](https://github.com/zznathans/bebot-helm/compare/1.0.6...1.0.7) (2026-04-28)
 
 
