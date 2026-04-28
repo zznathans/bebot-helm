@@ -16,10 +16,13 @@ tests:
 
   - it: sets the bot image from values
     template: bebot-deployment.yaml
+    set:
+      bebot.imageRepository: example.io/myrepo
+      bebot.imageTag: test-tag
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: ghcr.io/zznathans/bebot-helm:1.0.8
+          value: example.io/myrepo:test-tag
 
   - it: uses resources from values
     template: bebot-deployment.yaml
