@@ -10,6 +10,12 @@ spec:
   ports:
     - port: 3306
       targetPort: 3306
+      name: mysql
+    {{- if $.Values.bebot.mariadb.metrics.enabled }}
+    - port: 9104
+      targetPort: 9104
+      name: metrics
+    {{- end }}
   selector:
     app: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
 ---
@@ -24,6 +30,12 @@ spec:
   ports:
     - port: 3306
       targetPort: 3306
+      name: mysql
+    {{- if .Values.bebot.mariadb.metrics.enabled }}
+    - port: 9104
+      targetPort: 9104
+      name: metrics
+    {{- end }}
   selector:
     app: {{ .Release.Name }}-mariadb
 {{- end }}

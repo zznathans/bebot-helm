@@ -37,6 +37,28 @@ spec:
             limits:
               cpu: 1000m
               memory: 512Mi
+        {{- if $.Values.bebot.mariadb.metrics.enabled }}
+        - name: mysqld-exporter
+          image: {{ $.Values.bebot.mariadb.metrics.image }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-mariadb-root
+                  key: root-password
+            - name: DATA_SOURCE_NAME
+              value: "root:$(MYSQL_ROOT_PASSWORD)@(127.0.0.1:3306)/"
+          ports:
+            - containerPort: 9104
+              name: metrics
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+        {{- end }}
       {{- if $.Values.bebot.mariadb.persistence.enabled }}
           volumeMounts:
             - name: mariadb-data
@@ -93,6 +115,28 @@ spec:
             limits:
               cpu: 1000m
               memory: 512Mi
+        {{- if .Values.bebot.mariadb.metrics.enabled }}
+        - name: mysqld-exporter
+          image: {{ .Values.bebot.mariadb.metrics.image }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mariadb-root
+                  key: root-password
+            - name: DATA_SOURCE_NAME
+              value: "root:$(MYSQL_ROOT_PASSWORD)@(127.0.0.1:3306)/"
+          ports:
+            - containerPort: 9104
+              name: metrics
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+        {{- end }}
       {{- if .Values.bebot.mariadb.persistence.enabled }}
           volumeMounts:
             - name: mariadb-data

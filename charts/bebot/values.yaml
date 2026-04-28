@@ -20,6 +20,11 @@ bebot:
     # Run the db-setup job to create per-instance databases and users on first deploy.
     # Disable if managing database setup externally.
     dbSetupEnabled: true
+    metrics:
+      # Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104.
+      enabled: false
+      # Container image for the mysqld_exporter sidecar.
+      image: "prom/mysqld-exporter:v0.16.0"
     backup:
       # Enable a CronJob to periodically dump each database to SQL files.
       enabled: false
