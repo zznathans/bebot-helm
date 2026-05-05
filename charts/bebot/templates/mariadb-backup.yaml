@@ -143,6 +143,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ $.Release.Name }}-mariadb-backup-pvc-{{ $instance.name }}
   namespace: {{ $.Release.Namespace }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ $.Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}
@@ -287,6 +289,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Release.Name }}-mariadb-backup-pvc
   namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}
