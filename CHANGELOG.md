@@ -1,3 +1,11 @@
+## [1.1.3](https://github.com/zznathans/bebot-helm/compare/1.1.2...1.1.3) (2026-05-05)
+
+
+### Bug Fixes
+
+* **ci:** branch ([7038752](https://github.com/zznathans/bebot-helm/commit/7038752aa722dcae78385702784f5b259390b0fa))
+* **helm:** pvc adjustments ([cc20f29](https://github.com/zznathans/bebot-helm/commit/cc20f295c3ff1cf9f997344bcf34b3f2727c935c))
+
 ## [1.1.2](https://github.com/zznathans/bebot-helm/compare/1.1.1...1.1.2) (2026-05-05)
 
 
