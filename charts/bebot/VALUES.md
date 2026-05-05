@@ -52,3 +52,4 @@ helm chart for bebot
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
 | bebot.mariadb.rootUser | string | `"root"` | MySQL root user name to create. |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
+| bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
