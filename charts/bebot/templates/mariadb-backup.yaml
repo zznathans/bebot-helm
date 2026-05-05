@@ -63,7 +63,7 @@ spec:
                   mountPath: /backup
           containers:
             - name: s3-upload
-              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2" }}
+              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2.34.42" }}
               env:
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
@@ -209,7 +209,7 @@ spec:
                   mountPath: /backup
           containers:
             - name: s3-upload
-              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2" }}
+              image: {{ $.Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2.34.42" }}
               env:
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
