@@ -11,6 +11,7 @@
     {{- fail "bebot.mariadb.backup.s3.credentialsSecret is required when destination is \"s3\" and externalSecret.enabled is false" }}
   {{- end }}
 {{- end }}
+{{- $s3CredentialsSecret := .Values.bebot.mariadb.backup.s3.credentialsSecret | default (printf "%s-mariadb-backup-s3-creds" .Release.Name) }}
 {{- if .Values.bebot.mariadb.perInstance }}
 
 {{- range $i, $instance := .Values.bebot.instances }}
@@ -67,12 +68,12 @@ spec:
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
-                      name: {{ $.Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      name: {{ $s3CredentialsSecret }}
                       key: access-key-id
                 - name: AWS_SECRET_ACCESS_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: {{ $.Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      name: {{ $s3CredentialsSecret }}
                       key: secret-access-key
                 - name: AWS_DEFAULT_REGION
                   value: {{ $.Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
@@ -213,12 +214,12 @@ spec:
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
-                      name: {{ .Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      name: {{ $s3CredentialsSecret }}
                       key: access-key-id
                 - name: AWS_SECRET_ACCESS_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: {{ .Values.bebot.mariadb.backup.s3.credentialsSecret }}
+                      name: {{ $s3CredentialsSecret }}
                       key: secret-access-key
                 - name: AWS_DEFAULT_REGION
                   value: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
