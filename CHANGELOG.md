@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/zznathans/bebot-helm/compare/1.1.0...1.1.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **github:** release ([c4e64f5](https://github.com/zznathans/bebot-helm/commit/c4e64f50df73c945d1bd0bd1a27507854ad2e835))
+
 # [1.1.0](https://github.com/zznathans/bebot-helm/compare/1.0.9...1.1.0) (2026-04-28)
 
 
