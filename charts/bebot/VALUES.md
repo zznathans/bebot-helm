@@ -39,6 +39,7 @@ helm chart for bebot
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup job (default: 2am daily). |
 | bebot.mariadb.dbSetupEnabled | bool | `true` | Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally. |
 | bebot.mariadb.enabled | bool | `true` | Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database. |
+| bebot.mariadb.image | string | `"mariadb:11.4"` | Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs. |
 | bebot.mariadb.metrics.enabled | bool | `false` | Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104. |
 | bebot.mariadb.metrics.grafanaDashboard.enabled | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
 | bebot.mariadb.metrics.grafanaDashboard.label | string | `"grafana_dashboard"` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |

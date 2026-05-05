@@ -75,20 +75,32 @@ jobs:
   helm-docs:
     name: Helm Docs
     runs-on: ubuntu-latest
+    # Write permission is needed to push the auto-generated VALUES.md back to
+    # the branch. On PRs from forks this permission is unavailable, so the job
+    # falls back to failing with a diff instead of pushing.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Checkout the real branch so we can push back to it.
+          # GITHUB_TOKEN is used here; for branch-protected main the release
+          # workflow handles regeneration via the GitHub App token instead.
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - uses: ./.github/actions/install-helm-docs
 
       - name: Run helm-docs
         run: helm-docs --template-files VALUES.md.gotmpl --output-file VALUES.md --chart-search-root charts
 
-      - name: Fail if VALUES.md is out of date
+      - name: Commit and push if VALUES.md changed
         run: |
           if ! git diff --quiet charts/bebot/VALUES.md; then
-            echo "VALUES.md is out of date. Run helm-docs to regenerate it before merging."
-            git diff charts/bebot/VALUES.md
-            exit 1
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add charts/bebot/VALUES.md
+            git commit -m "docs: regenerate VALUES.md [skip ci]"
+            git push
           fi
 
   helm-unittest:
