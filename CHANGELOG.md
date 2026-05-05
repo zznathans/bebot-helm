@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/zznathans/bebot-helm/compare/1.1.3...1.1.4) (2026-05-05)
+
+
+### Bug Fixes
+
+* **ci:** hard shutdown ([72db9d9](https://github.com/zznathans/bebot-helm/commit/72db9d94615262fd5bf1f949e2c27b5f20986398))
+
 ## [1.1.3](https://github.com/zznathans/bebot-helm/compare/1.1.2...1.1.3) (2026-05-05)
 
 
