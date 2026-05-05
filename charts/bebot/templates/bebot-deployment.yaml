@@ -85,9 +85,14 @@ spec:
             - name: bebot-conf-secret
               mountPath: /secret
               readOnly: true
+      terminationGracePeriodSeconds: {{ $.Values.bebot.terminationGracePeriodSeconds | default 60 }}
       containers:
         - name: {{ $.Release.Name }}
           image: {{ $.Values.bebot.imageRepository }}:{{ $.Values.bebot.imageTag }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 2"]
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

@@ -84,6 +84,9 @@ bebot:
   # imagePullSecrets:
   #   - my-regcred
 
+  # -- Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly.
+  terminationGracePeriodSeconds: 60
+
   # -- Resource requests and limits for the bot container. Tune based on bot module load and guild activity.
   resources:
     requests:
