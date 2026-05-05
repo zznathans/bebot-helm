@@ -46,9 +46,9 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mysql -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
                     echo "Dumping ${db}..."
-                    mysqldump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                    mariadb-dump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
               resources:
                 requests:
@@ -112,9 +112,9 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mysql -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
                     echo "Dumping ${db}..."
-                    mysqldump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                    mariadb-dump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
               resources:
                 requests:
@@ -190,9 +190,9 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mysql -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
                     echo "Dumping ${db}..."
-                    mysqldump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                    mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
               resources:
                 requests:
@@ -256,9 +256,9 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mysql -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
                     echo "Dumping ${db}..."
-                    mysqldump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
+                    mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
               resources:
                 requests:
