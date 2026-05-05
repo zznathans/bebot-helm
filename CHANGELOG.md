@@ -1,3 +1,10 @@
+## [1.1.8](https://github.com/zznathans/bebot-helm/compare/1.1.7...1.1.8) (2026-05-05)
+
+
+### Bug Fixes
+
+* **aws:** fix aws cli image tag ([cd7c159](https://github.com/zznathans/bebot-helm/commit/cd7c159f77d54d1998483e84c4d4e8d481e2f6ef))
+
 ## [1.1.7](https://github.com/zznathans/bebot-helm/compare/1.1.6...1.1.7) (2026-05-05)
 
 
