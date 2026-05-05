@@ -1,8 +1,10 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
     branches: [main]
+    types: [completed]
 
 permissions:
   # Minimum needed to generate the app installation token.
@@ -14,8 +16,10 @@ jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
-    # Skip if the commit was made by the release bot to avoid loops.
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    # Only run when CI passed, and skip the bot's own release commits.
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      !contains(github.event.workflow_run.head_commit.message, '[skip ci]')
     steps:
       # Generate a short-lived installation token from a GitHub App.
       # This avoids storing a long-lived PAT and allows bypassing branch
@@ -38,6 +42,8 @@ jobs:
         with:
           # Full history is required for semantic-release to walk commits.
           fetch-depth: 0
+          # Check out the exact commit that passed CI.
+          ref: ${{ github.event.workflow_run.head_sha }}
           # Use the app token so pushed commits/tags are attributed to the app
           # and can satisfy branch protection bypass rules.
           token: ${{ steps.app-token.outputs.token }}
@@ -46,23 +52,10 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install helm-docs
-        run: |
-          curl -Lo /tmp/helm-docs.tar.gz \
-            https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz
-          tar -xzf /tmp/helm-docs.tar.gz -C /tmp helm-docs
-          sudo mv /tmp/helm-docs /usr/local/bin/helm-docs
+      - uses: ./.github/actions/install-helm-docs
 
       - name: Install semantic-release plugins
-        run: |
-          npm install -g \
-            semantic-release \
-            @semantic-release/commit-analyzer \
-            @semantic-release/release-notes-generator \
-            @semantic-release/changelog \
-            @semantic-release/exec \
-            @semantic-release/git \
-            @semantic-release/github
+        run: npm ci
 
       - name: Release
         run: npx semantic-release
