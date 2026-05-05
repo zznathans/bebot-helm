@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/zznathans/bebot-helm/compare/1.1.6...1.1.7) (2026-05-05)
+
+
+### Bug Fixes
+
+* **ci:** fix secret name ([60ed7df](https://github.com/zznathans/bebot-helm/commit/60ed7dfa9b82c45fb2385ca6f2adeef6bc15f46e))
+
 ## [1.1.6](https://github.com/zznathans/bebot-helm/compare/1.1.5...1.1.6) (2026-05-05)
 
 
