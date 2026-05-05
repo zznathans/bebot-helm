@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-grafana-mysql-dashboard
+  namespace: {{ .Release.Namespace }}
   labels:
     {{ .Values.bebot.mariadb.metrics.grafanaDashboard.label }}: "1"
 data:

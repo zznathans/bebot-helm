@@ -5,6 +5,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   selector:
     matchLabels:
@@ -19,6 +20,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ .Release.Name }}-mariadb
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:

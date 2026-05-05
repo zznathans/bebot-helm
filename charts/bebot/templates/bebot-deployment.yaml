@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $.Release.Name }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   strategy:
     type: Recreate
@@ -15,7 +16,7 @@ spec:
       annotations:
         checksum/conf: {{ toYaml . | sha256sum }}
         {{- if and $.Values.bebot.mariadb.enabled $.Values.bebot.mariadb.dbSetupEnabled }}
-        checksum/db-setup: {{ include (print $.Template.BasePath "/db-setup.yaml") $ | sha256sum }}
+        checksum/db-setup: {{ printf "%s:%s" .mariadbDatabase .mariadbUser | sha256sum }}
         {{- end }}
       labels:
         app: {{ $.Release.Name }}-{{ .name }}
@@ -24,7 +25,7 @@ spec:
       initContainers:
         {{- if and (eq .createSecret false) $.Values.bebot.mariadb.enabled $.Values.bebot.mariadb.dbSetupEnabled }}
         - name: db-setup
-          image: mariadb:11.4
+          image: {{ $.Values.bebot.mariadb.image }}
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -89,6 +90,10 @@ spec:
           image: {{ $.Values.bebot.imageRepository }}:{{ $.Values.bebot.imageTag }}
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
             capabilities:
               drop: ["ALL"]
           resources:

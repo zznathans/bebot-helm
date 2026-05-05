@@ -2,6 +2,8 @@ bebot:
   mariadb:
     # -- Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database.
     enabled: true
+    # -- Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs.
+    image: "mariadb:11.4"
     # -- When true, create a separate MariaDB deployment and PVC per bot instance. When false, use a single shared MariaDB.
     perInstance: false
     persistence:

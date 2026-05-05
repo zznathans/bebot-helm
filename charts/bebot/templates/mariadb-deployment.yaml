@@ -7,6 +7,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $.Release.Name }}-mariadb-{{ $instance.name }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   replicas: 1
   strategy:
@@ -21,7 +22,7 @@ spec:
     spec:
       containers:
         - name: mariadb
-          image: mariadb:11.4
+          image: {{ $.Values.bebot.mariadb.image }}
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -37,6 +38,26 @@ spec:
             limits:
               cpu: 1000m
               memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- if $.Values.bebot.mariadb.persistence.enabled }}
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+            {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
+            - name: mariadb-init
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+            {{- end }}
+          {{- end }}
         {{- if $.Values.bebot.mariadb.metrics.enabled }}
         - name: mysqld-exporter
           image: {{ $.Values.bebot.mariadb.metrics.image }}
@@ -65,23 +86,15 @@ spec:
               memory: 64Mi
         {{- end }}
       {{- if $.Values.bebot.mariadb.persistence.enabled }}
-          volumeMounts:
-            - name: mariadb-data
-              mountPath: /var/lib/mysql
-          {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
-            - name: mariadb-init
-              mountPath: /docker-entrypoint-initdb.d/
-              readOnly: true
-          {{- end }}
       volumes:
         - name: mariadb-data
           persistentVolumeClaim:
-            claimName: bebot-mariadb-pvc-{{ $instance.name }}
-      {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
+            claimName: {{ $.Release.Name }}-mariadb-pvc-{{ $instance.name }}
+        {{- if and $.Values.bebot.mariadb.dbSetupEnabled (ne $instance.createSecret false) }}
         - name: mariadb-init
           secret:
             secretName: {{ $.Release.Name }}-db-setup-{{ $instance.name }}
-      {{- end }}
+        {{- end }}
       {{- end }}
 ---
 {{- end }}
@@ -90,6 +103,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-mariadb
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   strategy:
@@ -104,7 +118,7 @@ spec:
     spec:
       containers:
         - name: mariadb
-          image: mariadb:11.4
+          image: {{ .Values.bebot.mariadb.image }}
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -120,6 +134,26 @@ spec:
             limits:
               cpu: 1000m
               memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- if .Values.bebot.mariadb.persistence.enabled }}
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+            {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+            - name: mariadb-init
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+            {{- end }}
+          {{- end }}
         {{- if .Values.bebot.mariadb.metrics.enabled }}
         - name: mysqld-exporter
           image: {{ .Values.bebot.mariadb.metrics.image }}
@@ -148,23 +182,15 @@ spec:
               memory: 64Mi
         {{- end }}
       {{- if .Values.bebot.mariadb.persistence.enabled }}
-          volumeMounts:
-            - name: mariadb-data
-              mountPath: /var/lib/mysql
-          {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
-            - name: mariadb-init
-              mountPath: /docker-entrypoint-initdb.d/
-              readOnly: true
-          {{- end }}
       volumes:
         - name: mariadb-data
           persistentVolumeClaim:
-            claimName: bebot-mariadb-pvc
-      {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+            claimName: {{ .Release.Name }}-mariadb-pvc
+        {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
         - name: mariadb-init
           secret:
             secretName: {{ .Release.Name }}-db-setup
-      {{- end }}
+        {{- end }}
       {{- end }}
 {{- end }}
 {{- end }}

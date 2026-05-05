@@ -18,6 +18,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ $.Release.Name }}-mariadb-backup-{{ $instance.name }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   schedule: "{{ $.Values.bebot.mariadb.backup.schedule }}"
   jobTemplate:
@@ -30,7 +31,7 @@ spec:
           {{- if eq $destination "s3" }}
           initContainers:
             - name: mysqldump
-              image: mariadb:11.4
+              image: {{ $.Values.bebot.mariadb.image }}
               env:
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
@@ -96,7 +97,7 @@ spec:
           {{- else }}
           containers:
             - name: mariadb-backup
-              image: mariadb:11.4
+              image: {{ $.Values.bebot.mariadb.image }}
               env:
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
@@ -141,6 +142,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ $.Release.Name }}-mariadb-backup-pvc-{{ $instance.name }}
+  namespace: {{ $.Release.Namespace }}
 spec:
   accessModes:
     - {{ $.Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}
@@ -160,6 +162,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ .Release.Name }}-mariadb-backup
+  namespace: {{ .Release.Namespace }}
 spec:
   schedule: "{{ .Values.bebot.mariadb.backup.schedule }}"
   jobTemplate:
@@ -172,7 +175,7 @@ spec:
           {{- if eq $destination "s3" }}
           initContainers:
             - name: mysqldump
-              image: mariadb:11.4
+              image: {{ .Values.bebot.mariadb.image }}
               env:
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
@@ -238,7 +241,7 @@ spec:
           {{- else }}
           containers:
             - name: mariadb-backup
-              image: mariadb:11.4
+              image: {{ .Values.bebot.mariadb.image }}
               env:
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
@@ -283,6 +286,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ .Release.Name }}-mariadb-backup-pvc
+  namespace: {{ .Release.Namespace }}
 spec:
   accessModes:
     - {{ .Values.bebot.mariadb.backup.pvc.accessMode | default "ReadWriteOnce" }}

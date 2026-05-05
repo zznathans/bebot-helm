@@ -1,1 +1,0 @@
-{{- /* db-setup is handled by an init container in bebot-deployment.yaml */ -}}

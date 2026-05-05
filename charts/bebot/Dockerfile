@@ -6,9 +6,12 @@ RUN apk --no-cache add \
     php83-dom php83-pcntl php83-zip php83-opcache php83-fileinfo php83-mysqli tini && \
     ln -sf /usr/bin/php83 /usr/bin/php && \
     git clone https://github.com/J-Soft/BeBot.git /BeBot && \
-    git -C /BeBot checkout f4cf0c7a6662e530c94c8428e3728be899827176
+    git -C /BeBot checkout f4cf0c7a6662e530c94c8428e3728be899827176 && \
+    addgroup -S bebot && adduser -S -G bebot -u 1000 bebot && \
+    chown -R bebot:bebot /BeBot
 COPY docker-entrypoint.sh /BeBot/docker-entrypoint.sh
 RUN chmod +x /BeBot/docker-entrypoint.sh
 WORKDIR /BeBot
+USER bebot
 ENTRYPOINT ["/sbin/tini", "-g", "--"]
 CMD ["/BeBot/docker-entrypoint.sh"]
