@@ -28,7 +28,7 @@ jobs:
       #   2. Install the app on this repository.
       #   3. Store the App ID as repository variable RELEASE_APP_ID.
       #   4. Store the private key (.pem contents) as secret RELEASE_APP_PRIVATE_KEY.
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
