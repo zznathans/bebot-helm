@@ -42,8 +42,10 @@ jobs:
         with:
           # Full history is required for semantic-release to walk commits.
           fetch-depth: 0
-          # Check out the exact commit that passed CI.
-          ref: ${{ github.event.workflow_run.head_sha }}
+          # Check out the branch by name so git tracking is set up correctly.
+          # Checking out by SHA (head_sha) creates a detached HEAD with no
+          # tracking ref, which causes semantic-release to report "behind remote."
+          ref: main
           # Use the app token so pushed commits/tags are attributed to the app
           # and can satisfy branch protection bypass rules.
           token: ${{ steps.app-token.outputs.token }}
