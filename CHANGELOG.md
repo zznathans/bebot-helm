@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/zznathans/bebot-helm/compare/1.1.4...1.1.5) (2026-05-05)
+
+
+### Bug Fixes
+
+* **mariadb:** fix backups ([6e8a8c7](https://github.com/zznathans/bebot-helm/commit/6e8a8c756718cf60f339810fd6818bafa719c666))
+
 ## [1.1.4](https://github.com/zznathans/bebot-helm/compare/1.1.3...1.1.4) (2026-05-05)
 
 
