@@ -1,3 +1,11 @@
+## [1.1.2](https://github.com/zznathans/bebot-helm/compare/1.1.1...1.1.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* **ci:** helm docs ([7ff22e9](https://github.com/zznathans/bebot-helm/commit/7ff22e9f3952382ba35ee330b1bbbc6031274da3))
+* **helm:** update templates ([2c0f422](https://github.com/zznathans/bebot-helm/commit/2c0f422ac36cb00b183ffb83b9e4b410e71db476))
+
 ## [1.1.1](https://github.com/zznathans/bebot-helm/compare/1.1.0...1.1.1) (2026-05-05)
 
 
