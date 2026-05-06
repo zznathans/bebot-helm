@@ -1,3 +1,10 @@
+## [1.1.9](https://github.com/zznathans/bebot-helm/compare/1.1.8...1.1.9) (2026-05-06)
+
+
+### Bug Fixes
+
+* **ci:** fix default aws image ([b78e285](https://github.com/zznathans/bebot-helm/commit/b78e285982c7ce46eb215985865f52ceff43fca4))
+
 ## [1.1.8](https://github.com/zznathans/bebot-helm/compare/1.1.7...1.1.8) (2026-05-05)
 
 
