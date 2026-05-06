@@ -47,7 +47,7 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
                     echo "Dumping ${db}..."
                     mariadb-dump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
@@ -113,7 +113,7 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
                     echo "Dumping ${db}..."
                     mariadb-dump -h {{ $.Release.Name }}-mariadb-{{ $instance.name }} -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
@@ -193,7 +193,7 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
                     echo "Dumping ${db}..."
                     mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
@@ -259,7 +259,7 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys')"); do
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
                     echo "Dumping ${db}..."
                     mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" > /backup/${db}_$(date +%Y%m%d_%H%M%S).sql
                   done
