@@ -55,7 +55,7 @@ bebot:
         # -- Key prefix/path within the bucket where dumps are written.
         path: "backups/bebot"
         # -- Container image used to perform the S3 upload. Must have the aws CLI available.
-        image: "amazon/aws-cli:2"
+        # image: "amazon/aws-cli:2.34.42"
         # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
         credentialsSecret: ""
         externalSecret:
