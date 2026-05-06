@@ -33,7 +33,6 @@ helm chart for bebot
 | bebot.mariadb.backup.s3.credentialsSecret | string | `""` | Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below. |
 | bebot.mariadb.backup.s3.endpoint | string | `""` | Optional: override endpoint URL for non-AWS providers (MinIO, Backblaze B2, etc.). |
 | bebot.mariadb.backup.s3.externalSecret.enabled | bool | `false` | When true, create an ExternalSecret to populate credentialsSecret from an external store. When false (default), the secret named by credentialsSecret must already exist. |
-| bebot.mariadb.backup.s3.image | string | `"amazon/aws-cli:2"` | Container image used to perform the S3 upload. Must have the aws CLI available. |
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup job (default: 2am daily). |
