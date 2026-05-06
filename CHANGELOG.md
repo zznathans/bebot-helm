@@ -1,3 +1,10 @@
+## [1.1.10](https://github.com/zznathans/bebot-helm/compare/1.1.9...1.1.10) (2026-05-06)
+
+
+### Bug Fixes
+
+* **mysqldump:** ignore lost+found ([dad2f9e](https://github.com/zznathans/bebot-helm/commit/dad2f9e7cc33f7d268dd59821b54970c7b7444f5))
+
 ## [1.1.9](https://github.com/zznathans/bebot-helm/compare/1.1.8...1.1.9) (2026-05-06)
 
 
