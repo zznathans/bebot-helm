@@ -5,6 +5,6 @@ name: bebot
 description: helm chart for bebot
 type: application
 
-appVersion: 1.1.14
+appVersion: 1.1.15
 
-version: 1.1.14
+version: 1.1.15

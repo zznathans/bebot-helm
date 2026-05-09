@@ -1,3 +1,10 @@
+## [1.1.15](https://github.com/zznathans/bebot-helm/compare/1.1.14...1.1.15) (2026-05-09)
+
+
+### Bug Fixes
+
+* **ci:** double encoding ([8744c30](https://github.com/zznathans/bebot-helm/commit/8744c30375ee5478d2da64015dc38645a0339fe9))
+
 ## [1.1.14](https://github.com/zznathans/bebot-helm/compare/1.1.13...1.1.14) (2026-05-09)
 
 
