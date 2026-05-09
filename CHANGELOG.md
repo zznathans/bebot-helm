@@ -1,3 +1,10 @@
+## [1.1.11](https://github.com/zznathans/bebot-helm/compare/1.1.10...1.1.11) (2026-05-09)
+
+
+### Bug Fixes
+
+* **trivy:** configure trivy ([7ee8854](https://github.com/zznathans/bebot-helm/commit/7ee8854b06241ee5f7dba41d6a5ddbca6fa93762))
+
 ## [1.1.10](https://github.com/zznathans/bebot-helm/compare/1.1.9...1.1.10) (2026-05-06)
 
 
