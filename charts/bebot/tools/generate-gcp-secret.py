@@ -73,9 +73,9 @@ def write_output(data: dict, args: argparse.Namespace) -> None:
 
     if args.secret_name:
         print(
-            f"\n# Upload with:\n"
-            f"#   <above command> | "
-            f"gcloud secrets versions add <SECRET_NAME> --data-file=-",
+            "\n# Upload with:\n"
+            "#   <above command> | "
+            "gcloud secrets versions add <SECRET_NAME> --data-file=-",
             file=sys.stderr,
         )
 
@@ -240,6 +240,12 @@ def main() -> None:
         "-s", "--secret-name",
         metavar="NAME",
         help="GCP secret name — used to print the matching gcloud upload command.",
+    )
+    parser.add_argument(
+        "--print-to-stdout",
+        action="store_true",
+        default=False,
+        help="Print the JSON payload to stdout instead of requiring --output-file.",
     )
 
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
