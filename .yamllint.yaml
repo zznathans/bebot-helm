@@ -4,6 +4,7 @@ extends: default
 ignore: |
   templates/
   index.yaml
+  .github
 
 rules:
   line-length:
