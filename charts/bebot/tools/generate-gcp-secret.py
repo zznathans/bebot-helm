@@ -49,8 +49,28 @@ def prompt_secret(label: str) -> str:
 
 
 def write_output(data: dict, args: argparse.Namespace) -> None:
-    """Serialize payload and write to stdout."""
-    print(json.dumps(data, indent=2))
+    """Serialize payload and write to an explicit destination."""
+    payload = json.dumps(data, indent=2)
+
+    wrote_output = False
+    if getattr(args, "output_file", None):
+        with open(args.output_file, "w", encoding="utf-8") as out_f:
+            out_f.write(payload)
+            out_f.write("\n")
+        wrote_output = True
+
+    if getattr(args, "print_to_stdout", False):
+        print(payload)
+        wrote_output = True
+
+    if not wrote_output:
+        print(
+            "Refusing to write sensitive payload to stdout by default. "
+            "Use --output-file <path> or --print-to-stdout.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     if args.secret_name:
         print(
             f"\n# Upload with:\n"
