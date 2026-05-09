@@ -14,8 +14,12 @@ import generate_gcp_secret as script
 # Helpers
 # ---------------------------------------------------------------------------
 
-def make_args(output_file=None, secret_name=None):
-    return argparse.Namespace(output_file=output_file, secret_name=secret_name)
+def make_args(output_file=None, secret_name=None, print_to_stdout=False):
+    return argparse.Namespace(
+        output_file=output_file,
+        secret_name=secret_name,
+        print_to_stdout=print_to_stdout,
+    )
 
 
 def b64d(value: str) -> str:
@@ -30,7 +34,7 @@ def b64d(value: str) -> str:
 class TestWriteOutput:
     def test_writes_valid_json_to_stdout(self, capsys):
         data = {"foo": "bar", "nested": {"x": 1}}
-        script.write_output(data, make_args())
+        script.write_output(data, make_args(print_to_stdout=True))
         captured = capsys.readouterr()
         assert json.loads(captured.out) == data
 
@@ -47,9 +51,9 @@ class TestWriteOutput:
         assert captured.out == ""
 
     def test_gcloud_hint_printed_to_stderr(self, capsys):
-        script.write_output({"k": "v"}, make_args(secret_name="my-secret"))
+        script.write_output({"k": "v"}, make_args(secret_name="my-secret", print_to_stdout=True))
         captured = capsys.readouterr()
-        assert "my-secret" in captured.err
+        assert "gcloud secrets versions add" in captured.err
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +84,7 @@ class TestCmdBotConfig:
         #               mariadb_database, mariadb_host (has default)
         with patch("builtins.input", side_effect=["botuser", "botdb", ""]), \
              patch("getpass.getpass", side_effect=["aopass", "dbpass"]):
-            script.cmd_bot_config(make_args())
+            script.cmd_bot_config(make_args(print_to_stdout=True))
         return json.loads(capsys.readouterr().out)
 
     def test_all_keys_present(self, capsys):
@@ -111,7 +115,7 @@ class TestCmdMariadbRoot:
         # Prompt order: root-user (has default), root-password (secret)
         with patch("builtins.input", return_value=""), \
              patch("getpass.getpass", return_value="r00tpass"):
-            script.cmd_mariadb_root(make_args())
+            script.cmd_mariadb_root(make_args(print_to_stdout=True))
         return json.loads(capsys.readouterr().out)
 
     def test_keys_present(self, capsys):
@@ -136,7 +140,7 @@ class TestCmdS3Credentials:
         # Prompt order: access-key-id (value), secret-access-key (secret)
         with patch("builtins.input", return_value="AKIAIOSFODNN7EXAMPLE"), \
              patch("getpass.getpass", return_value="wJalrXUtnFEMI/K7MDENG"):
-            script.cmd_s3_credentials(make_args())
+            script.cmd_s3_credentials(make_args(print_to_stdout=True))
         return json.loads(capsys.readouterr().out)
 
     def test_keys_present(self, capsys):
@@ -158,7 +162,7 @@ class TestCmdRegistry:
         # Prompt order: registry (has default), username, password (secret), email (has default)
         with patch("builtins.input", side_effect=["myreg.example.com:5050", "myuser", email]), \
              patch("getpass.getpass", return_value="mytoken"):
-            script.cmd_registry(make_args())
+            script.cmd_registry(make_args(print_to_stdout=True))
         return json.loads(capsys.readouterr().out)
 
     def test_dockerconfigjson_key_present(self, capsys):
