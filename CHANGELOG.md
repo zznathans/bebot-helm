@@ -1,3 +1,11 @@
+## [1.1.12](https://github.com/zznathans/bebot-helm/compare/1.1.11...1.1.12) (2026-05-09)
+
+
+### Bug Fixes
+
+* **helm:** encode secrets ([8835cd1](https://github.com/zznathans/bebot-helm/commit/8835cd1120e61d2eaa7ecf1e886d8b7b340f0c9c))
+* wire --print-to-stdout flag into argparse ([ffb6bf8](https://github.com/zznathans/bebot-helm/commit/ffb6bf8b1488b14e35b84c89f13db3c5e5a95f94))
+
 ## [1.1.11](https://github.com/zznathans/bebot-helm/compare/1.1.10...1.1.11) (2026-05-09)
 
 
