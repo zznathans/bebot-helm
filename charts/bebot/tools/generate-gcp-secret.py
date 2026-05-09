@@ -75,7 +75,7 @@ def write_output(data: dict, args: argparse.Namespace) -> None:
         print(
             f"\n# Upload with:\n"
             f"#   <above command> | "
-            f"gcloud secrets versions add {args.secret_name} --data-file=-",
+            f"gcloud secrets versions add <SECRET_NAME> --data-file=-",
             file=sys.stderr,
         )
 
