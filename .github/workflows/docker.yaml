@@ -51,6 +51,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan image with Trivy
+        id: trivy
+        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
@@ -63,6 +65,10 @@ jobs:
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: trivy-results.sarif
+
+      - name: Fail if Trivy found vulnerabilities
+        if: steps.trivy.outcome == 'failure'
+        run: exit 1
