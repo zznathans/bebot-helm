@@ -14,10 +14,6 @@ Usage:
   # Pipe directly to gcloud:
   python tools/generate-gcp-secret.py bot-config | \\
     gcloud secrets versions add ao-bebot-pfs --data-file=-
-
-  # Save to file, then upload:
-  python tools/generate-gcp-secret.py mariadb-root --output-file /tmp/secret.json
-  gcloud secrets versions add ao-bebot-mariadb-root --data-file=/tmp/secret.json
 """
 
 import argparse
@@ -53,29 +49,15 @@ def prompt_secret(label: str) -> str:
 
 
 def write_output(data: dict, args: argparse.Namespace) -> None:
-    """Serialize payload and write to stdout or file."""
-    payload = json.dumps(data, indent=2)
-
-    if args.output_file:
-        with open(args.output_file, "w", encoding="utf-8") as fh:
-            fh.write(payload + "\n")
-        print(f"\nPayload written to: {args.output_file}", file=sys.stderr)
-        if args.secret_name:
-            print(
-                f"\nUpload with:\n"
-                f"  gcloud secrets versions add {args.secret_name} "
-                f"--data-file={args.output_file}",
-                file=sys.stderr,
-            )
-    else:
-        print(payload)
-        if args.secret_name:
-            print(
-                f"\n# Upload with:\n"
-                f"#   <above command> | "
-                f"gcloud secrets versions add {args.secret_name} --data-file=-",
-                file=sys.stderr,
-            )
+    """Serialize payload and write to stdout."""
+    print(json.dumps(data, indent=2))
+    if args.secret_name:
+        print(
+            f"\n# Upload with:\n"
+            f"#   <above command> | "
+            f"gcloud secrets versions add {args.secret_name} --data-file=-",
+            file=sys.stderr,
+        )
 
 
 def section(title: str, description: str) -> None:
@@ -233,11 +215,6 @@ def main() -> None:
         prog="generate-gcp-secret",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "-o", "--output-file",
-        metavar="FILE",
-        help="Write JSON payload to FILE instead of stdout.",
     )
     parser.add_argument(
         "-s", "--secret-name",
