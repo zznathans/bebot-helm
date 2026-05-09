@@ -19,8 +19,8 @@ helm chart for bebot
 | bebot.instances[0].dimension | string | `"5"` |  |
 | bebot.instances[0].enabled | bool | `true` |  |
 | bebot.instances[0].guildId | int | `0` |  |
-| bebot.instances[0].mariadbDatabase | string | `"botdb"` |  |
-| bebot.instances[0].mariadbUser | string | `"botuser"` |  |
+| bebot.instances[0].mariadbDatabase | string | `"Ym90ZGI="` |  |
+| bebot.instances[0].mariadbUser | string | `"Ym90dXNlcg=="` |  |
 | bebot.instances[0].name | string | `"mybot"` |  |
 | bebot.instances[0].raidbot | bool | `false` |  |
 | bebot.instances[0].superAdmins[0] | string | `"AdminCharacter"` |  |
@@ -49,6 +49,6 @@ helm chart for bebot
 | bebot.mariadb.persistence.size | string | `"1Gi"` | Size of the PersistentVolumeClaim for MariaDB data. |
 | bebot.mariadb.persistence.storageClass | string | `""` | StorageClass to use for the PVC. Leave empty to use the cluster default. |
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
-| bebot.mariadb.rootUser | string | `"root"` | MySQL root user name to create. |
+| bebot.mariadb.rootUser | string | `"cm9vdA=="` | MySQL root user name to create. Must be base64-encoded when createSecret is unset or true. |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
