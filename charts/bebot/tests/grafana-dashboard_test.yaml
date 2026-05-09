@@ -1,0 +1,38 @@
+suite: grafana dashboard
+templates:
+  - grafana-dashboard.yaml
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders a ConfigMap when grafanaDashboard is enabled
+    set:
+      bebot.mariadb.metrics.enabled: true
+      bebot.mariadb.metrics.grafanaDashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-grafana-mysql-dashboard
+
+  - it: renders nothing when metrics are disabled even if grafanaDashboard is enabled
+    set:
+      bebot.mariadb.metrics.enabled: false
+      bebot.mariadb.metrics.grafanaDashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: uses the configured grafana dashboard label
+    set:
+      bebot.mariadb.metrics.enabled: true
+      bebot.mariadb.metrics.grafanaDashboard.enabled: true
+      bebot.mariadb.metrics.grafanaDashboard.label: my_dashboard_label
+    asserts:
+      - isNotEmpty:
+          path: metadata.labels.my_dashboard_label
