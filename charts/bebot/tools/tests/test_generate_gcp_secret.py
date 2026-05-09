@@ -18,6 +18,11 @@ def make_args(output_file=None, secret_name=None):
     return argparse.Namespace(output_file=output_file, secret_name=secret_name)
 
 
+def b64d(value: str) -> str:
+    """Decode a base64-encoded string value from the secret payload."""
+    return base64.b64decode(value).decode()
+
+
 # ---------------------------------------------------------------------------
 # write_output
 # ---------------------------------------------------------------------------
@@ -87,14 +92,14 @@ class TestCmdBotConfig:
 
     def test_values_populated(self, capsys):
         data = self._run(capsys)
-        assert data["ao_password"] == "aopass"
-        assert data["mariadb_user"] == "botuser"
-        assert data["mariadb_password"] == "dbpass"
-        assert data["mariadb_database"] == "botdb"
+        assert b64d(data["ao_password"]) == "aopass"
+        assert b64d(data["mariadb_user"]) == "botuser"
+        assert b64d(data["mariadb_password"]) == "dbpass"
+        assert b64d(data["mariadb_database"]) == "botdb"
 
     def test_mariadb_host_defaults(self, capsys):
         data = self._run(capsys)
-        assert data["mariadb_host"] == "bebot-mariadb"
+        assert b64d(data["mariadb_host"]) == "bebot-mariadb"
 
 
 # ---------------------------------------------------------------------------
@@ -115,11 +120,11 @@ class TestCmdMariadbRoot:
 
     def test_root_user_defaults_to_root(self, capsys):
         data = self._run(capsys)
-        assert data["root-user"] == "root"
+        assert b64d(data["root-user"]) == "root"
 
     def test_root_password_value(self, capsys):
         data = self._run(capsys)
-        assert data["root-password"] == "r00tpass"
+        assert b64d(data["root-password"]) == "r00tpass"
 
 
 # ---------------------------------------------------------------------------
@@ -140,8 +145,8 @@ class TestCmdS3Credentials:
 
     def test_values(self, capsys):
         data = self._run(capsys)
-        assert data["access-key-id"] == "AKIAIOSFODNN7EXAMPLE"
-        assert data["secret-access-key"] == "wJalrXUtnFEMI/K7MDENG"
+        assert b64d(data["access-key-id"]) == "AKIAIOSFODNN7EXAMPLE"
+        assert b64d(data["secret-access-key"]) == "wJalrXUtnFEMI/K7MDENG"
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=invalid-name  # filename uses hyphens per CLI convention
 """
 Generate GCP Secret Manager payloads for ao-bebot ExternalSecrets.
 
@@ -56,7 +57,7 @@ def write_output(data: dict, args: argparse.Namespace) -> None:
     payload = json.dumps(data, indent=2)
 
     if args.output_file:
-        with open(args.output_file, "w") as fh:
+        with open(args.output_file, "w", encoding="utf-8") as fh:
             fh.write(payload + "\n")
         print(f"\nPayload written to: {args.output_file}", file=sys.stderr)
         if args.secret_name:
@@ -78,6 +79,7 @@ def write_output(data: dict, args: argparse.Namespace) -> None:
 
 
 def section(title: str, description: str) -> None:
+    """Print a formatted section header to stderr."""
     print(f"\n{'=' * 60}", file=sys.stderr)
     print(f"  {title}", file=sys.stderr)
     print(f"{'=' * 60}", file=sys.stderr)
@@ -158,7 +160,8 @@ def cmd_s3_credentials(args: argparse.Namespace) -> None:
     """
     section(
         "S3 Backup Credentials",
-        "AWS/S3-compatible credentials for the backup job (backup.s3.externalSecret.enabled: true).",
+        "AWS/S3-compatible credentials for the backup job"
+        " (backup.s3.externalSecret.enabled: true).",
     )
 
     data = {
@@ -219,12 +222,13 @@ def cmd_registry(args: argparse.Namespace) -> None:
 COMMANDS = {
     "bot-config":    (cmd_bot_config,    "Bot instance credentials (ao_password, mariadb_*)"),
     "mariadb-root":  (cmd_mariadb_root,  "MariaDB root credentials (root-user, root-password)"),
-    "s3-credentials":(cmd_s3_credentials,"S3 backup credentials (access-key-id, secret-access-key)"),
+    "s3-credentials": (cmd_s3_credentials, "S3 credentials (access-key-id, secret-access-key)"),
     "registry":      (cmd_registry,      "Container registry pull credentials (dockerconfigjson)"),
 }
 
 
 def main() -> None:
+    """Parse CLI arguments and dispatch to the appropriate subcommand handler."""
     parser = argparse.ArgumentParser(
         prog="generate-gcp-secret",
         description=__doc__,
