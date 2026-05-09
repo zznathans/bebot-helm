@@ -1,3 +1,11 @@
+## [1.1.13](https://github.com/zznathans/bebot-helm/compare/1.1.12...1.1.13) (2026-05-09)
+
+
+### Bug Fixes
+
+* **helm:** bump release ([b094e37](https://github.com/zznathans/bebot-helm/commit/b094e37dbc77dc11f6ce5ed74bd9484207e5c885))
+* prevent upload-sarif error when trivy scan fails before writing file ([45a9a02](https://github.com/zznathans/bebot-helm/commit/45a9a021ba46230c398157f2b4ec3f56162ee2c6))
+
 ## [1.1.12](https://github.com/zznathans/bebot-helm/compare/1.1.11...1.1.12) (2026-05-09)
 
 
