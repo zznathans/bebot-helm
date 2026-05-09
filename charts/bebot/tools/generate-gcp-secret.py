@@ -89,6 +89,11 @@ def section(title: str, description: str) -> None:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
+def b64(value: str) -> str:
+    """Base64-encode a UTF-8 string. Chart ExternalSecrets use decodingStrategy: Base64."""
+    return base64.b64encode(value.encode()).decode()
+
+
 def cmd_bot_config(args: argparse.Namespace) -> None:
     """
     Bot instance credentials.
@@ -96,6 +101,9 @@ def cmd_bot_config(args: argparse.Namespace) -> None:
     Used when an instance has createSecret: false.
     The chart ExternalSecret expects these keys:
       ao_password, mariadb_user, mariadb_password, mariadb_database, mariadb_host
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "Bot Instance Config",
@@ -103,11 +111,11 @@ def cmd_bot_config(args: argparse.Namespace) -> None:
     )
 
     data = {
-        "ao_password":       prompt_secret("AO account password"),
-        "mariadb_user":      prompt_value("MariaDB username"),
-        "mariadb_password":  prompt_secret("MariaDB password"),
-        "mariadb_database":  prompt_value("MariaDB database name"),
-        "mariadb_host":      prompt_value("MariaDB host", default="bebot-mariadb"),
+        "ao_password":       b64(prompt_secret("AO account password")),
+        "mariadb_user":      b64(prompt_value("MariaDB username")),
+        "mariadb_password":  b64(prompt_secret("MariaDB password")),
+        "mariadb_database":  b64(prompt_value("MariaDB database name")),
+        "mariadb_host":      b64(prompt_value("MariaDB host", default="bebot-mariadb")),
     }
 
     write_output(data, args)
@@ -120,6 +128,9 @@ def cmd_mariadb_root(args: argparse.Namespace) -> None:
     Used when mariadb.createSecret: false.
     The chart ExternalSecret expects these keys:
       root-user, root-password
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "MariaDB Root Credentials",
@@ -127,8 +138,8 @@ def cmd_mariadb_root(args: argparse.Namespace) -> None:
     )
 
     data = {
-        "root-user":     prompt_value("Root username", default="root"),
-        "root-password": prompt_secret("Root password"),
+        "root-user":     b64(prompt_value("Root username", default="root")),
+        "root-password": b64(prompt_secret("Root password")),
     }
 
     write_output(data, args)
@@ -141,6 +152,9 @@ def cmd_s3_credentials(args: argparse.Namespace) -> None:
     Used when backup.s3.externalSecret.enabled: true.
     The chart ExternalSecret expects these keys:
       access-key-id, secret-access-key
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "S3 Backup Credentials",
@@ -148,8 +162,8 @@ def cmd_s3_credentials(args: argparse.Namespace) -> None:
     )
 
     data = {
-        "access-key-id":     prompt_value("Access key ID"),
-        "secret-access-key": prompt_secret("Secret access key"),
+        "access-key-id":     b64(prompt_value("Access key ID")),
+        "secret-access-key": b64(prompt_secret("Secret access key")),
     }
 
     write_output(data, args)

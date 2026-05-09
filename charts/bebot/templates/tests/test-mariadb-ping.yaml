@@ -1,0 +1,64 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- if .Values.bebot.mariadb.perInstance }}
+{{- range .Values.bebot.instances }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $.Release.Name }}-test-mariadb-ping-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: mariadb-ping
+      image: {{ $.Values.bebot.mariadb.image }}
+      command:
+        - /bin/sh
+        - -c
+        - MYSQL_PWD="${ROOT_PASSWORD}" mariadb-admin ping -u"${ROOT_USER}" -h{{ $.Release.Name }}-mariadb-{{ .name }}
+      env:
+        - name: ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-mariadb-root
+              key: root-password
+        - name: ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-mariadb-root
+              key: root-user
+---
+{{- end }}
+{{- else }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test-mariadb-ping
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: mariadb-ping
+      image: {{ .Values.bebot.mariadb.image }}
+      command:
+        - /bin/sh
+        - -c
+        - MYSQL_PWD="${ROOT_PASSWORD}" mariadb-admin ping -u"${ROOT_USER}" -h{{ .Release.Name }}-mariadb
+      env:
+        - name: ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-mariadb-root
+              key: root-password
+        - name: ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-mariadb-root
+              key: root-user
+{{- end }}
+{{- end }}

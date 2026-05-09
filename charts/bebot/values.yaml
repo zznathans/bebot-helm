@@ -15,8 +15,8 @@ bebot:
       storageClass: ""
       # -- Access mode for the PVC. RWO is required for most block storage backends.
       accessMode: ReadWriteOnce
-    # -- MySQL root user name to create.
-    rootUser: "root"
+    # -- MySQL root user name to create. Must be base64-encoded when createSecret is unset or true.
+    rootUser: "cm9vdA=="
     # -- Host mask for the root user grant (% = allow from any host).
     rootHost: "%"
     # -- Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally.
@@ -100,8 +100,8 @@ bebot:
     - name: mybot                   # Unique name for this bot instance. Used in resource names.
       enabled: true                 # Set to false to suspend this bot without removing MariaDB or other shared resources.
       guildId: 0                    # Anarchy Online org/guild ID the bot serves.
-      mariadbUser: "botuser"        # MySQL user the bot connects as.
-      mariadbDatabase: "botdb"      # MySQL database name for this instance.
+      mariadbUser: "Ym90dXNlcg=="    # MySQL user the bot connects as. Must be base64-encoded. (botuser)
+      mariadbDatabase: "Ym90ZGI="   # MySQL database name for this instance. Must be base64-encoded. (botdb)
       ao_username: "ao_account"     # AO account username the bot logs in with.
       bot_name: "BotCharacter"      # In-game character name of the bot.
       dimension: "5"                # AO dimension/server ID (5 = RK5 / Rubi-Ka).

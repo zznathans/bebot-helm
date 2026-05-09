@@ -12,9 +12,9 @@ stringData:
 {{- range .Values.bebot.instances }}
 {{- if ne .createSecret false }}
   db_setup_{{ .name }}.sql: |-
-    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase }}`;
-    CREATE USER IF NOT EXISTS '{{ .mariadbUser }}'@'%' IDENTIFIED BY '{{ .mariadbPassword }}';
-    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase }}`.* TO '{{ .mariadbUser }}'@'%';
+    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase | default "" | b64dec }}`;
+    CREATE USER IF NOT EXISTS '{{ .mariadbUser | default "" | b64dec }}'@'%' IDENTIFIED BY '{{ .mariadbPassword | default "" | b64dec }}';
+    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase | default "" | b64dec }}`.* TO '{{ .mariadbUser | default "" | b64dec }}'@'%';
     FLUSH PRIVILEGES;
 {{- end }}
 {{- end }}
@@ -29,9 +29,9 @@ metadata:
   namespace: {{ $.Release.Namespace }}
 stringData:
   db_setup.sql: |-
-    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase }}`;
-    CREATE USER IF NOT EXISTS '{{ .mariadbUser }}'@'%' IDENTIFIED BY '{{ .mariadbPassword }}';
-    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase }}`.* TO '{{ .mariadbUser }}'@'%';
+    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase | default "" | b64dec }}`;
+    CREATE USER IF NOT EXISTS '{{ .mariadbUser | default "" | b64dec }}'@'%' IDENTIFIED BY '{{ .mariadbPassword | default "" | b64dec }}';
+    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase | default "" | b64dec }}`.* TO '{{ .mariadbUser | default "" | b64dec }}'@'%';
     FLUSH PRIVILEGES;
 ---
 {{- end }}

@@ -1,0 +1,38 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- range .Values.bebot.instances }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $.Release.Name }}-test-mariadb-grants-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: mariadb-grants
+      image: {{ $.Values.bebot.mariadb.image }}
+      command:
+        - /bin/sh
+        - -c
+        - MYSQL_PWD="${MARIADB_PASSWORD}" mariadb -u"${MARIADB_USER}" -h{{ if $.Values.bebot.mariadb.perInstance }}{{ $.Release.Name }}-mariadb-{{ .name }}{{ else }}{{ $.Release.Name }}-mariadb{{ end }} "${MARIADB_DATABASE}" -e "SELECT 1"
+      env:
+        - name: MARIADB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-conf-{{ .name }}
+              key: mariadb_user
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-conf-{{ .name }}
+              key: mariadb_password
+        - name: MARIADB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-conf-{{ .name }}
+              key: mariadb_database
+---
+{{- end }}
+{{- end }}
