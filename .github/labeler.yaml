@@ -1,0 +1,49 @@
+helm:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'charts/bebot/templates/**'
+    - 'charts/bebot/values.yaml'
+    - 'charts/bebot/Chart.yaml'
+    - 'charts/bebot/files/**'
+
+docker:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'charts/bebot/Dockerfile'
+    - 'charts/bebot/docker-entrypoint.sh'
+
+ci:
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/workflows/**'
+    - '.github/actions/**'
+
+documentation:
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.md'
+    - 'charts/bebot/VALUES.md.gotmpl'
+
+tests:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'charts/bebot/tests/**'
+    - 'charts/bebot/templates/tests/**'
+    - 'charts/bebot/tools/tests/**'
+
+tools:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'charts/bebot/tools/**'
+
+examples:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'charts/bebot/examples/**'
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/dependabot.yml'
+    - 'package.json'
+    - 'package-lock.json'

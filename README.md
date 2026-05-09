@@ -8,7 +8,7 @@ Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy On
 
 - Deploy one or more bot instances from a single chart
 - Optional in-cluster MariaDB (shared or per-instance)
-- Credentials via direct Helm Secrets or GCP Secret Manager (ExternalSecrets)
+- Credentials via base64-encoded Helm values or GCP Secret Manager (ExternalSecrets)
 - S3-compatible or PVC-based database backups
 - NetworkPolicy to isolate MariaDB access
 - Checksum-based pod rollouts when config or secrets change
@@ -48,7 +48,7 @@ helm install my-bebot bebot/bebot -f my-values.yaml
 | `persistence.size` | string | `1Gi` | PVC size. |
 | `persistence.storageClass` | string | `""` | StorageClass name. Empty uses cluster default. |
 | `persistence.accessMode` | string | `ReadWriteOnce` | PVC access mode. |
-| `rootUser` | string | `root` | MariaDB root username. |
+| `rootUser` | string | `root` | MariaDB root username. Must be **base64-encoded** when `createSecret` is unset or `true`. |
 | `rootHost` | string | `%` | Host mask for the root user grant. |
 | `dbSetupEnabled` | bool | `true` | Run the db-setup job to create per-instance databases and users. |
 | `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead. |
@@ -91,17 +91,17 @@ helm install my-bebot bebot/bebot -f my-values.yaml
 | `name` | string | Unique instance name, used in all resource names. |
 | `enabled` | bool | Set `false` to suspend the bot without removing MariaDB. |
 | `guildId` | int | Anarchy Online guild/org ID. |
-| `mariadbUser` | string | MySQL user for this instance. |
-| `mariadbDatabase` | string | MySQL database for this instance. |
+| `mariadbUser` | string | MySQL user for this instance. Must be **base64-encoded** when `createSecret: true`. |
+| `mariadbDatabase` | string | MySQL database for this instance. Must be **base64-encoded** when `createSecret: true`. |
 | `ao_username` | string | AO account username. |
 | `bot_name` | string | In-game bot character name. |
 | `dimension` | string | AO dimension ID (`5` = Rubi-Ka). |
 | `raidbot` | bool | Enable raid bot mode. |
 | `botOwner` | string | AO character with owner-level access. |
 | `superAdmins` | list | AO characters with super-admin access. |
-| `ao_password` | string | AO account password. Required when `createSecret: true`. |
-| `mariadbPassword` | string | MySQL password for `mariadbUser`. Required when `createSecret: true`. |
-| `mariadbHost` | string | MySQL host. Defaults to the in-cluster MariaDB service name. Override when using an external database. |
+| `ao_password` | string | AO account password. Required when `createSecret: true`. Must be **base64-encoded**. |
+| `mariadbPassword` | string | MySQL password for `mariadbUser`. Required when `createSecret: true`. Must be **base64-encoded**. |
+| `mariadbHost` | string | MySQL host. Defaults to the in-cluster MariaDB service name. Must be **base64-encoded** when set explicitly with `createSecret: true`. |
 | `createSecret` | bool | `true` = Helm manages the secret. `false` = use ExternalSecret. |
 | `gcpSecretName` | string | GCP secret with `ao_password`, `mariadb_user`, `mariadb_password`, `mariadb_database`, `mariadb_host`. |
 | `secretStoreName` | string | ExternalSecrets store name. |
@@ -158,6 +158,25 @@ These are optional. All values have sensible defaults matching the original BeBo
 
 ---
 
+## Testing
+
+After installing the chart, run the included Helm tests to verify the deployment:
+
+```bash
+helm test my-bebot
+```
+
+This runs two test suites:
+
+| Test | What it checks |
+|---|---|
+| `test-mariadb-ping` | MariaDB is reachable and accepting connections via the root credentials secret |
+| `test-mariadb-grants` | Each bot instance's database user can connect and run queries against its database |
+
+Both tests clean up their pods automatically on success (`hook-delete-policy: hook-succeeded`).
+
+---
+
 ## GCP Secret Payloads
 
 Use the included helper script to generate the JSON payload for each secret type:
@@ -209,6 +228,8 @@ The simplest path. All credentials are stored directly in the Helm values and re
 
 > **Note:** Avoid committing a values file containing real passwords to source control. Use `helm install -f my-secret-values.yaml` with a file kept outside the repo, or use Sealed Secrets / SOPS to encrypt it at rest.
 
+> **Important:** All secret values in `values.yaml` must be **base64-encoded**. Use `echo -n "myvalue" | base64` to encode each value before placing it in the file.
+
 ```yaml
 bebot:
   mariadb:
@@ -218,6 +239,8 @@ bebot:
       size: 2Gi
     # Root credentials are auto-generated on first install and stored in a
     # K8s Secret. They are reused on subsequent upgrades.
+    # rootUser is base64-encoded: echo -n "root" | base64  →  cm9vdA==
+    rootUser: "cm9vdA=="
 
   imageRepository: "ghcr.io/my-org/ao-bebot"
   imageTag: "1.2.3"
@@ -226,8 +249,10 @@ bebot:
     - name: myguild
       enabled: true
       guildId: 123456
-      mariadbUser: "myguilduser"
-      mariadbDatabase: "myguilddb"
+      # Encode: echo -n "myguilduser" | base64  →  bXlndWlsZHVzZXI=
+      mariadbUser: "bXlndWlsZHVzZXI="
+      # Encode: echo -n "myguilddb" | base64  →  bXlndWlsZGRi
+      mariadbDatabase: "bXlndWlsZGRi"
       ao_username: "my_ao_account"
       bot_name: "MyBotCharacter"
       dimension: "5"
@@ -237,9 +262,9 @@ bebot:
         - "AdminChar1"
         - "AdminChar2"
       # createSecret defaults to true — Helm creates the Secret directly.
-      # The following keys must be supplied in the values file (or via --set):
-      ao_password: "change_me"
-      mariadbPassword: "change_me"
+      # The following keys must be base64-encoded (echo -n "value" | base64):
+      ao_password: "Y2hhbmdlX21l"       # change_me
+      mariadbPassword: "Y2hhbmdlX21l"   # change_me
 ```
 
 ---
@@ -266,7 +291,7 @@ python tools/generate-gcp-secret.py registry | \
   gcloud secrets versions add my-registry-creds --data-file=-
 ```
 
-Each GCP secret is a JSON object. The ExternalSecret resources created by this chart will pull individual keys from it — you do not need to structure it any differently.
+Each GCP secret is a JSON object where **all values are base64-encoded strings**. The `generate-gcp-secret.py` script handles this automatically. The ExternalSecret resources use `decodingStrategy: Base64` when fetching each property, so the decoded plain-text value ends up in the Kubernetes Secret.
 
 #### 2. Configure values.yaml
 
@@ -293,8 +318,9 @@ bebot:
     - name: myguild
       enabled: true
       guildId: 123456
-      mariadbUser: "myguilduser"       # Still required — used by the db-setup job
-      mariadbDatabase: "myguilddb"     # Still required — used by the db-setup job
+      # Still required for the db-setup job — must be base64-encoded.
+      mariadbUser: "bXlndWlsZHVzZXI="    # echo -n "myguilduser" | base64
+      mariadbDatabase: "bXlndWlsZGRi"    # echo -n "myguilddb" | base64
       ao_username: "my_ao_account"
       bot_name: "MyBotCharacter"
       dimension: "5"

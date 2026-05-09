@@ -1,0 +1,80 @@
+suite: mariadb network policy
+templates:
+  - mariadb-networkpolicy.yaml
+tests:
+  - it: renders a NetworkPolicy when mariadb is enabled
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-mariadb
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: allows ingress from each bot instance
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector:
+              matchLabels:
+                app: RELEASE-NAME-mybot
+
+  - it: adds backup pod selector to ingress when backup is enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: pvc
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector:
+              matchLabels:
+                app: RELEASE-NAME-mariadb-backup
+
+  - it: adds metrics ingress rule when metrics are enabled
+    set:
+      bebot.mariadb.metrics.enabled: true
+    asserts:
+      - isNotEmpty:
+          path: spec.ingress[1]
+
+  - it: renders per-instance NetworkPolicies when perInstance is true
+    set:
+      bebot.mariadb.perInstance: true
+      bebot.instances:
+        - name: bot1
+          enabled: true
+          guildId: 1
+          mariadbUser: user1
+          mariadbDatabase: db1
+          ao_username: acct1
+          bot_name: Bot1
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner1
+          superAdmins: []
+          createSecret: true
+        - name: bot2
+          enabled: true
+          guildId: 2
+          mariadbUser: user2
+          mariadbDatabase: db2
+          ao_username: acct2
+          bot_name: Bot2
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner2
+          superAdmins: []
+          createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 2

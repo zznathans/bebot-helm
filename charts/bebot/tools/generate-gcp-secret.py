@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=invalid-name  # filename uses hyphens per CLI convention
 """
 Generate GCP Secret Manager payloads for ao-bebot ExternalSecrets.
 
@@ -13,10 +14,6 @@ Usage:
   # Pipe directly to gcloud:
   python tools/generate-gcp-secret.py bot-config | \\
     gcloud secrets versions add ao-bebot-pfs --data-file=-
-
-  # Save to file, then upload:
-  python tools/generate-gcp-secret.py mariadb-root --output-file /tmp/secret.json
-  gcloud secrets versions add ao-bebot-mariadb-root --data-file=/tmp/secret.json
 """
 
 import argparse
@@ -52,32 +49,39 @@ def prompt_secret(label: str) -> str:
 
 
 def write_output(data: dict, args: argparse.Namespace) -> None:
-    """Serialize payload and write to stdout or file."""
+    """Serialize payload and write to an explicit destination."""
     payload = json.dumps(data, indent=2)
 
-    if args.output_file:
-        with open(args.output_file, "w") as fh:
-            fh.write(payload + "\n")
-        print(f"\nPayload written to: {args.output_file}", file=sys.stderr)
-        if args.secret_name:
-            print(
-                f"\nUpload with:\n"
-                f"  gcloud secrets versions add {args.secret_name} "
-                f"--data-file={args.output_file}",
-                file=sys.stderr,
-            )
-    else:
+    wrote_output = False
+    if getattr(args, "output_file", None):
+        with open(args.output_file, "w", encoding="utf-8") as out_f:
+            out_f.write(payload)
+            out_f.write("\n")
+        wrote_output = True
+
+    if getattr(args, "print_to_stdout", False):
         print(payload)
-        if args.secret_name:
-            print(
-                f"\n# Upload with:\n"
-                f"#   <above command> | "
-                f"gcloud secrets versions add {args.secret_name} --data-file=-",
-                file=sys.stderr,
-            )
+        wrote_output = True
+
+    if not wrote_output:
+        print(
+            "Refusing to write sensitive payload to stdout by default. "
+            "Use --output-file <path> or --print-to-stdout.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if args.secret_name:
+        print(
+            "\n# Upload with:\n"
+            "#   <above command> | "
+            "gcloud secrets versions add <SECRET_NAME> --data-file=-",
+            file=sys.stderr,
+        )
 
 
 def section(title: str, description: str) -> None:
+    """Print a formatted section header to stderr."""
     print(f"\n{'=' * 60}", file=sys.stderr)
     print(f"  {title}", file=sys.stderr)
     print(f"{'=' * 60}", file=sys.stderr)
@@ -89,6 +93,11 @@ def section(title: str, description: str) -> None:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
+def b64(value: str) -> str:
+    """Base64-encode a UTF-8 string. Chart ExternalSecrets use decodingStrategy: Base64."""
+    return base64.b64encode(value.encode()).decode()
+
+
 def cmd_bot_config(args: argparse.Namespace) -> None:
     """
     Bot instance credentials.
@@ -96,6 +105,9 @@ def cmd_bot_config(args: argparse.Namespace) -> None:
     Used when an instance has createSecret: false.
     The chart ExternalSecret expects these keys:
       ao_password, mariadb_user, mariadb_password, mariadb_database, mariadb_host
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "Bot Instance Config",
@@ -103,11 +115,11 @@ def cmd_bot_config(args: argparse.Namespace) -> None:
     )
 
     data = {
-        "ao_password":       prompt_secret("AO account password"),
-        "mariadb_user":      prompt_value("MariaDB username"),
-        "mariadb_password":  prompt_secret("MariaDB password"),
-        "mariadb_database":  prompt_value("MariaDB database name"),
-        "mariadb_host":      prompt_value("MariaDB host", default="bebot-mariadb"),
+        "ao_password":       b64(prompt_secret("AO account password")),
+        "mariadb_user":      b64(prompt_value("MariaDB username")),
+        "mariadb_password":  b64(prompt_secret("MariaDB password")),
+        "mariadb_database":  b64(prompt_value("MariaDB database name")),
+        "mariadb_host":      b64(prompt_value("MariaDB host", default="bebot-mariadb")),
     }
 
     write_output(data, args)
@@ -120,6 +132,9 @@ def cmd_mariadb_root(args: argparse.Namespace) -> None:
     Used when mariadb.createSecret: false.
     The chart ExternalSecret expects these keys:
       root-user, root-password
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "MariaDB Root Credentials",
@@ -127,8 +142,8 @@ def cmd_mariadb_root(args: argparse.Namespace) -> None:
     )
 
     data = {
-        "root-user":     prompt_value("Root username", default="root"),
-        "root-password": prompt_secret("Root password"),
+        "root-user":     b64(prompt_value("Root username", default="root")),
+        "root-password": b64(prompt_secret("Root password")),
     }
 
     write_output(data, args)
@@ -141,15 +156,19 @@ def cmd_s3_credentials(args: argparse.Namespace) -> None:
     Used when backup.s3.externalSecret.enabled: true.
     The chart ExternalSecret expects these keys:
       access-key-id, secret-access-key
+
+    All values are stored base64-encoded because the ExternalSecret resources use
+    decodingStrategy: Base64 when fetching each property.
     """
     section(
         "S3 Backup Credentials",
-        "AWS/S3-compatible credentials for the backup job (backup.s3.externalSecret.enabled: true).",
+        "AWS/S3-compatible credentials for the backup job"
+        " (backup.s3.externalSecret.enabled: true).",
     )
 
     data = {
-        "access-key-id":     prompt_value("Access key ID"),
-        "secret-access-key": prompt_secret("Secret access key"),
+        "access-key-id":     b64(prompt_value("Access key ID")),
+        "secret-access-key": b64(prompt_secret("Secret access key")),
     }
 
     write_output(data, args)
@@ -205,26 +224,28 @@ def cmd_registry(args: argparse.Namespace) -> None:
 COMMANDS = {
     "bot-config":    (cmd_bot_config,    "Bot instance credentials (ao_password, mariadb_*)"),
     "mariadb-root":  (cmd_mariadb_root,  "MariaDB root credentials (root-user, root-password)"),
-    "s3-credentials":(cmd_s3_credentials,"S3 backup credentials (access-key-id, secret-access-key)"),
+    "s3-credentials": (cmd_s3_credentials, "S3 credentials (access-key-id, secret-access-key)"),
     "registry":      (cmd_registry,      "Container registry pull credentials (dockerconfigjson)"),
 }
 
 
 def main() -> None:
+    """Parse CLI arguments and dispatch to the appropriate subcommand handler."""
     parser = argparse.ArgumentParser(
         prog="generate-gcp-secret",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "-o", "--output-file",
-        metavar="FILE",
-        help="Write JSON payload to FILE instead of stdout.",
-    )
-    parser.add_argument(
         "-s", "--secret-name",
         metavar="NAME",
         help="GCP secret name — used to print the matching gcloud upload command.",
+    )
+    parser.add_argument(
+        "--print-to-stdout",
+        action="store_true",
+        default=False,
+        help="Print the JSON payload to stdout instead of requiring --output-file.",
     )
 
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")

@@ -1,0 +1,27 @@
+suite: extra objects
+templates:
+  - extra-objects.yaml
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders raw objects from extraObjects
+    set:
+      bebot.extraObjects:
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: my-extra-config
+          data:
+            key: value
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: my-extra-config-2
+          data:
+            key: value2
+    asserts:
+      - hasDocuments:
+          count: 2

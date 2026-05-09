@@ -1,0 +1,85 @@
+suite: mariadb deployment
+templates:
+  - mariadb-deployment.yaml
+tests:
+  - it: renders a single shared Deployment by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-mariadb
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: uses the configured mariadb image
+    set:
+      bebot.mariadb.image: mariadb:10.11
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: mariadb:10.11
+
+  - it: renders per-instance Deployments when perInstance is true
+    set:
+      bebot.mariadb.perInstance: true
+      bebot.instances:
+        - name: bot1
+          enabled: true
+          guildId: 1
+          mariadbUser: user1
+          mariadbDatabase: db1
+          ao_username: acct1
+          bot_name: Bot1
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner1
+          superAdmins: []
+          createSecret: true
+        - name: bot2
+          enabled: true
+          guildId: 2
+          mariadbUser: user2
+          mariadbDatabase: db2
+          ao_username: acct2
+          bot_name: Bot2
+          dimension: "5"
+          raidbot: false
+          botOwner: Owner2
+          superAdmins: []
+          createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: includes metrics sidecar when metrics are enabled
+    set:
+      bebot.mariadb.metrics.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: mysqld-exporter
+
+  - it: does not include metrics sidecar by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[1]
+
+  - it: mounts persistence volume when persistence is enabled
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.volumes
+
+  - it: does not mount persistence volume when persistence is disabled
+    set:
+      bebot.mariadb.persistence.enabled: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
