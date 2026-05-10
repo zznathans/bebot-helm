@@ -29,7 +29,7 @@ jobs:
           docker build -t ghcr.io/zznathans/bebot-helm:${{ github.sha }} charts/bebot/
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@7b7aa264d83dc58691451798b4d117d53d21edfe
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: 'ghcr.io/zznathans/bebot-helm:${{ github.sha }}'
           format: 'template'
