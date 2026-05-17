@@ -8,6 +8,11 @@ helm chart for bebot
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| bebot.externalSecret | object | `{"gcpSecretName":"","secretRefreshInterval":"1h","secretStoreKind":"ClusterSecretStore","secretStoreName":"gcp-clusterstore"}` | Configuration for the single upstream external secret used by all ExternalSecret resources in this chart. All ExternalSecrets reference this one GCP/external secret, which must be a JSON object with a key per credential. Required keys: <instance-name>_ao_password, <instance-name>_mariadb_user, <instance-name>_mariadb_password, <instance-name>_mariadb_database (per instance); mariadb_root_password, mariadb_root_user (shared); s3_access_key, s3_secret_key (if using S3 backup with externalSecret.enabled). |
+| bebot.externalSecret.gcpSecretName | string | `""` | Name of the upstream secret in the external store (required when any resource uses createSecret: false). |
+| bebot.externalSecret.secretRefreshInterval | string | `"1h"` | How often ExternalSecrets poll for updates. |
+| bebot.externalSecret.secretStoreKind | string | `"ClusterSecretStore"` | Kind of the secret store (ClusterSecretStore or SecretStore). |
+| bebot.externalSecret.secretStoreName | string | `"gcp-clusterstore"` | Name of the ClusterSecretStore or SecretStore to use. |
 | bebot.extraObjects | list | `[]` | Raw Kubernetes objects to render alongside chart-managed resources. Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values. |
 | bebot.imagePullSecrets | list | `[]` | List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public. |
 | bebot.imageRepository | string | `"ghcr.io/zznathans/bebot-helm"` | Container image registry and repository for the bebot image. |
@@ -19,8 +24,8 @@ helm chart for bebot
 | bebot.instances[0].dimension | string | `"5"` |  |
 | bebot.instances[0].enabled | bool | `true` |  |
 | bebot.instances[0].guildId | int | `0` |  |
-| bebot.instances[0].mariadbDatabase | string | `"Ym90ZGI="` |  |
-| bebot.instances[0].mariadbUser | string | `"Ym90dXNlcg=="` |  |
+| bebot.instances[0].mariadbDatabase | string | `"botdb"` |  |
+| bebot.instances[0].mariadbUser | string | `"botuser"` |  |
 | bebot.instances[0].name | string | `"mybot"` |  |
 | bebot.instances[0].raidbot | bool | `false` |  |
 | bebot.instances[0].superAdmins[0] | string | `"AdminCharacter"` |  |
@@ -32,7 +37,7 @@ helm chart for bebot
 | bebot.mariadb.backup.s3.bucket | string | `""` | S3 bucket name to upload dumps to. |
 | bebot.mariadb.backup.s3.credentialsSecret | string | `""` | Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below. |
 | bebot.mariadb.backup.s3.endpoint | string | `""` | Optional: override endpoint URL for non-AWS providers (MinIO, Backblaze B2, etc.). |
-| bebot.mariadb.backup.s3.externalSecret.enabled | bool | `false` | When true, create an ExternalSecret to populate credentialsSecret from an external store. When false (default), the secret named by credentialsSecret must already exist. |
+| bebot.mariadb.backup.s3.externalSecret.enabled | bool | `false` | When true, create an ExternalSecret to populate credentialsSecret from the upstream secret at bebot.externalSecret. When false (default), the secret named by credentialsSecret must already exist. |
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup job (default: 2am daily). |
@@ -43,12 +48,11 @@ helm chart for bebot
 | bebot.mariadb.metrics.grafanaDashboard.enabled | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
 | bebot.mariadb.metrics.grafanaDashboard.label | string | `"grafana_dashboard"` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |
 | bebot.mariadb.metrics.image | string | `"prom/mysqld-exporter:v0.16.0"` | Container image for the mysqld_exporter sidecar. |
-| bebot.mariadb.perInstance | bool | `false` | When true, create a separate MariaDB deployment and PVC per bot instance. When false, use a single shared MariaDB. |
 | bebot.mariadb.persistence.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. RWO is required for most block storage backends. |
 | bebot.mariadb.persistence.enabled | bool | `true` | Enable persistent storage for MariaDB data. If false, data is lost on pod restart. |
 | bebot.mariadb.persistence.size | string | `"1Gi"` | Size of the PersistentVolumeClaim for MariaDB data. |
 | bebot.mariadb.persistence.storageClass | string | `""` | StorageClass to use for the PVC. Leave empty to use the cluster default. |
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
-| bebot.mariadb.rootUser | string | `"cm9vdA=="` | MySQL root user name to create. Must be base64-encoded when createSecret is unset or true. |
+| bebot.mariadb.rootUser | string | `"root"` | MySQL root user name to create. |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
