@@ -1,6 +1,6 @@
 suite: mariadb backup
 templates:
-  - mariadb-backup.yaml
+  - mariadb/mariadb-backup.yaml
 tests:
   - it: renders nothing when backup is disabled
     asserts:

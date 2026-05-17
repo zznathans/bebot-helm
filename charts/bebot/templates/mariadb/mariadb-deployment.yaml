@@ -1,0 +1,97 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- $hasBakedInstances := false }}
+{{- range .Values.bebot.instances }}{{- if ne .createSecret false }}{{- $hasBakedInstances = true }}{{- end }}{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mariadb
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mariadb
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: {{ .Values.bebot.mariadb.image }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mariadb-root
+                  key: root-password
+          ports:
+            - containerPort: 3306
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "MYSQL_PWD=\"${MYSQL_ROOT_PASSWORD}\" mariadb-admin ping -uroot -hlocalhost"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          {{- if .Values.bebot.mariadb.persistence.enabled }}
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+            {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+            - name: mariadb-init
+              mountPath: /docker-entrypoint-initdb.d/
+              readOnly: true
+            {{- end }}
+          {{- end }}
+        {{- if .Values.bebot.mariadb.metrics.enabled }}
+        - name: mysqld-exporter
+          image: {{ .Values.bebot.mariadb.metrics.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z 127.0.0.1 3306; do sleep 2; done
+              printf '[client]\nuser=root\npassword=%s\nhost=127.0.0.1\nport=3306\n' "$MYSQL_ROOT_PASSWORD" > /tmp/.my.cnf
+              exec /bin/mysqld_exporter --config.my-cnf=/tmp/.my.cnf
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mariadb-root
+                  key: root-password
+          ports:
+            - containerPort: 9104
+              name: metrics
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+        {{- end }}
+      {{- if .Values.bebot.mariadb.persistence.enabled }}
+      volumes:
+        - name: mariadb-data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-mariadb-pvc
+        {{- if and .Values.bebot.mariadb.dbSetupEnabled $hasBakedInstances }}
+        - name: mariadb-init
+          secret:
+            secretName: {{ .Release.Name }}-db-setup
+        {{- end }}
+      {{- end }}
+{{- end }}

@@ -1,6 +1,6 @@
 suite: mariadb network policy
 templates:
-  - mariadb-networkpolicy.yaml
+  - mariadb/mariadb-networkpolicy.yaml
 tests:
   - it: renders a NetworkPolicy when mariadb is enabled
     asserts:
@@ -46,35 +46,3 @@ tests:
     asserts:
       - isNotEmpty:
           path: spec.ingress[1]
-
-  - it: renders per-instance NetworkPolicies when perInstance is true
-    set:
-      bebot.mariadb.perInstance: true
-      bebot.instances:
-        - name: bot1
-          enabled: true
-          guildId: 1
-          mariadbUser: user1
-          mariadbDatabase: db1
-          ao_username: acct1
-          bot_name: Bot1
-          dimension: "5"
-          raidbot: false
-          botOwner: Owner1
-          superAdmins: []
-          createSecret: true
-        - name: bot2
-          enabled: true
-          guildId: 2
-          mariadbUser: user2
-          mariadbDatabase: db2
-          ao_username: acct2
-          bot_name: Bot2
-          dimension: "5"
-          raidbot: false
-          botOwner: Owner2
-          superAdmins: []
-          createSecret: true
-    asserts:
-      - hasDocuments:
-          count: 2

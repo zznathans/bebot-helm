@@ -1,6 +1,6 @@
 suite: mariadb service
 templates:
-  - mariadb-service.yaml
+  - mariadb/mariadb-service.yaml
 tests:
   - it: renders a single Service by default
     asserts:
@@ -38,35 +38,3 @@ tests:
             - port: 3306
               targetPort: 3306
               name: mysql
-
-  - it: renders per-instance Services when perInstance is true
-    set:
-      bebot.mariadb.perInstance: true
-      bebot.instances:
-        - name: bot1
-          enabled: true
-          guildId: 1
-          mariadbUser: user1
-          mariadbDatabase: db1
-          ao_username: acct1
-          bot_name: Bot1
-          dimension: "5"
-          raidbot: false
-          botOwner: Owner1
-          superAdmins: []
-          createSecret: true
-        - name: bot2
-          enabled: true
-          guildId: 2
-          mariadbUser: user2
-          mariadbDatabase: db2
-          ao_username: acct2
-          bot_name: Bot2
-          dimension: "5"
-          raidbot: false
-          botOwner: Owner2
-          superAdmins: []
-          createSecret: true
-    asserts:
-      - hasDocuments:
-          count: 2
