@@ -1,6 +1,6 @@
 suite: grafana dashboard
 templates:
-  - grafana-dashboard.yaml
+  - observability/grafana-dashboard.yaml
 tests:
   - it: renders nothing by default
     asserts:

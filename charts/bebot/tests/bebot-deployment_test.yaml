@@ -1,10 +1,10 @@
 suite: bebot deployment
 templates:
-  - bebot-deployment.yaml
-  - db-setup.yaml
+  - bebot/bebot-deployment.yaml
+  - mariadb/db-setup.yaml
 tests:
   - it: renders a Deployment for the default instance
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     asserts:
       - hasDocuments:
           count: 1
@@ -15,7 +15,7 @@ tests:
           value: RELEASE-NAME-mybot
 
   - it: sets the bot image from values
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     set:
       bebot.imageRepository: example.io/myrepo
       bebot.imageTag: test-tag
@@ -25,7 +25,7 @@ tests:
           value: example.io/myrepo:test-tag
 
   - it: uses resources from values
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     set:
       bebot.resources.requests.cpu: 200m
       bebot.resources.limits.memory: 512Mi
@@ -38,7 +38,7 @@ tests:
           value: 512Mi
 
   - it: does not render disabled instances
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     set:
       bebot.instances[0].enabled: false
     asserts:
@@ -46,7 +46,7 @@ tests:
           count: 0
 
   - it: renders multiple instances
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     set:
       bebot.instances:
         - name: bot1
@@ -78,7 +78,7 @@ tests:
           count: 2
 
   - it: includes checksum annotation for config changes
-    template: bebot-deployment.yaml
+    template: bebot/bebot-deployment.yaml
     asserts:
       - isNotEmpty:
           path: spec.template.metadata.annotations["checksum/conf"]
