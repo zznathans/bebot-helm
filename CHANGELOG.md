@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/zznathans/bebot-helm/compare/1.1.15...1.2.0) (2026-05-17)
+
+
+### Features
+
+* **bot:** simplify everything ([1ee5de1](https://github.com/zznathans/bebot-helm/commit/1ee5de147f674981bf6bca90865ed78787a87d53))
+
 ## [1.1.15](https://github.com/zznathans/bebot-helm/compare/1.1.14...1.1.15) (2026-05-09)
 
 
