@@ -1,11 +1,24 @@
 bebot:
+  # -- Configuration for the single upstream external secret used by all ExternalSecret resources in this chart.
+  # All ExternalSecrets reference this one GCP/external secret, which must be a JSON object with a key per credential.
+  # Required keys: <instance-name>_ao_password, <instance-name>_mariadb_user, <instance-name>_mariadb_password,
+  # <instance-name>_mariadb_database (per instance); mariadb_root_password, mariadb_root_user (shared);
+  # s3_access_key, s3_secret_key (if using S3 backup with externalSecret.enabled).
+  externalSecret:
+    # -- Name of the upstream secret in the external store (required when any resource uses createSecret: false).
+    gcpSecretName: ""
+    # -- Name of the ClusterSecretStore or SecretStore to use.
+    secretStoreName: gcp-clusterstore
+    # -- Kind of the secret store (ClusterSecretStore or SecretStore).
+    secretStoreKind: ClusterSecretStore
+    # -- How often ExternalSecrets poll for updates.
+    secretRefreshInterval: 1h
+
   mariadb:
     # -- Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database.
     enabled: true
     # -- Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs.
     image: "mariadb:11.4"
-    # -- When true, create a separate MariaDB deployment and PVC per bot instance. When false, use a single shared MariaDB.
-    perInstance: false
     persistence:
       # -- Enable persistent storage for MariaDB data. If false, data is lost on pod restart.
       enabled: true
@@ -15,8 +28,8 @@ bebot:
       storageClass: ""
       # -- Access mode for the PVC. RWO is required for most block storage backends.
       accessMode: ReadWriteOnce
-    # -- MySQL root user name to create. Must be base64-encoded when createSecret is unset or true.
-    rootUser: "cm9vdA=="
+    # -- MySQL root user name to create.
+    rootUser: "root"
     # -- Host mask for the root user grant (% = allow from any host).
     rootHost: "%"
     # -- Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally.
@@ -59,21 +72,14 @@ bebot:
         # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
         credentialsSecret: ""
         externalSecret:
-          # -- When true, create an ExternalSecret to populate credentialsSecret from an external store. When false (default), the secret named by credentialsSecret must already exist.
+          # -- When true, create an ExternalSecret to populate credentialsSecret from the upstream secret at bebot.externalSecret. When false (default), the secret named by credentialsSecret must already exist.
           enabled: false
-          # gcpSecretName: ""
-          # secretStoreName: gcp-clusterstore
-          # secretStoreKind: ClusterSecretStore
-          # secretRefreshInterval: 1h
 
     # Controls how the MariaDB root credentials secret is managed.
     # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).
-    # When false: an ExternalSecret is created instead — requires gcpSecretName and store settings below.
+    # When false: an ExternalSecret is created instead, pulling mariadb_root_password and mariadb_root_user
+    #             from the upstream secret defined at bebot.externalSecret.
     # createSecret: true
-    # gcpSecretName: ao-bebot-mariadb-root
-    # secretStoreName: gcp-clusterstore
-    # secretStoreKind: ClusterSecretStore
-    # secretRefreshInterval: 1h
 
   # -- Container image registry and repository for the bebot image.
   imageRepository: ghcr.io/zznathans/bebot-helm
@@ -100,8 +106,8 @@ bebot:
     - name: mybot                   # Unique name for this bot instance. Used in resource names.
       enabled: true                 # Set to false to suspend this bot without removing MariaDB or other shared resources.
       guildId: 0                    # Anarchy Online org/guild ID the bot serves.
-      mariadbUser: "Ym90dXNlcg=="    # MySQL user the bot connects as. Must be base64-encoded. (botuser)
-      mariadbDatabase: "Ym90ZGI="   # MySQL database name for this instance. Must be base64-encoded. (botdb)
+      mariadbUser: "botuser"        # MySQL user the bot connects as.
+      mariadbDatabase: "botdb"      # MySQL database name for this instance.
       ao_username: "ao_account"     # AO account username the bot logs in with.
       bot_name: "BotCharacter"      # In-game character name of the bot.
       dimension: "5"                # AO dimension/server ID (5 = RK5 / Rubi-Ka).
@@ -110,13 +116,13 @@ bebot:
       superAdmins:                  # List of AO character names granted super-admin access to the bot.
         - "AdminCharacter"
       # Controls how this instance's bot config secret is managed.
-      # When true or unset: a K8s Secret is created directly by Helm using the values above.
-      # When false: an ExternalSecret pulls credentials from an external store (requires gcpSecretName etc.).
+      # When true or unset: a K8s Secret is created directly by Helm using the values above (mariadbUser,
+      #   mariadbPassword, mariadbDatabase, ao_password must be set in values).
+      # When false: an ExternalSecret pulls credentials from the upstream secret at bebot.externalSecret,
+      #   using keys <name>_ao_password, <name>_mariadb_user, <name>_mariadb_password, <name>_mariadb_database.
       createSecret: true
-      # gcpSecretName: my-bebot-secret
-      # secretStoreName: gcp-clusterstore
-      # secretStoreKind: ClusterSecretStore
-      # secretRefreshInterval: 1h
+      # mariadbPassword: ""         # Required when createSecret is true.
+      # ao_password: ""             # Required when createSecret is true.
 
   # -- Raw Kubernetes objects to render alongside chart-managed resources. Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values.
   extraObjects: []

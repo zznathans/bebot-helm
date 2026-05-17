@@ -38,7 +38,7 @@ spec:
               "
           env:
             - name: MARIADB_HOST
-              value: "{{ if $.Values.bebot.mariadb.perInstance }}{{ $.Release.Name }}-mariadb-{{ .name }}{{ else }}{{ $.Release.Name }}-mariadb{{ end }}"
+              value: "{{ $.Release.Name }}-mariadb"
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -86,6 +86,10 @@ spec:
               mountPath: /secret
               readOnly: true
       terminationGracePeriodSeconds: {{ $.Values.bebot.terminationGracePeriodSeconds | default 60 }}
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
       containers:
         - name: {{ $.Release.Name }}
           image: {{ $.Values.bebot.imageRepository }}:{{ $.Values.bebot.imageTag }}

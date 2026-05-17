@@ -1,0 +1,21 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.dbSetupEnabled }}
+{{- $hasBakedInstances := false }}
+{{- range .Values.bebot.instances }}{{- if ne .createSecret false }}{{- $hasBakedInstances = true }}{{- end }}{{- end }}
+{{- if $hasBakedInstances }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-db-setup
+  namespace: {{ .Release.Namespace }}
+stringData:
+{{- range .Values.bebot.instances }}
+{{- if ne .createSecret false }}
+  db_setup_{{ .name }}.sql: |-
+    CREATE DATABASE IF NOT EXISTS `{{ .mariadbDatabase | default "" }}`;
+    CREATE USER IF NOT EXISTS '{{ .mariadbUser | default "" }}'@'%' IDENTIFIED BY '{{ .mariadbPassword | default "" }}';
+    GRANT ALL PRIVILEGES ON `{{ .mariadbDatabase | default "" }}`.* TO '{{ .mariadbUser | default "" }}'@'%';
+    FLUSH PRIVILEGES;
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
