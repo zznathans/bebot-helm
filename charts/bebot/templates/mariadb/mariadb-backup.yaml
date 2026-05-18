@@ -17,6 +17,8 @@ kind: CronJob
 metadata:
   name: {{ .Release.Name }}-mariadb-backup
   namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   schedule: "{{ .Values.bebot.mariadb.backup.schedule }}"
   jobTemplate:
