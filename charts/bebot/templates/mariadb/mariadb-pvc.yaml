@@ -4,8 +4,6 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Release.Name }}-mariadb-pvc
   namespace: {{ .Release.Namespace }}
-  annotations:
-    helm.sh/resource-policy: keep
 spec:
   accessModes:
     - {{ .Values.bebot.mariadb.persistence.accessMode | default "ReadWriteOnce" }}
