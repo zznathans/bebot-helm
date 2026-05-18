@@ -51,16 +51,18 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 
 ### `bebot.mariadb`
 
+The chart deploys a **single shared MariaDB** instance. All bot instances connect to the same server; each gets its own database and user within it. There is no per-instance MariaDB option.
+
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Deploy an in-cluster MariaDB. Set `false` to use an external database. |
+| `enabled` | bool | `true` | Deploy the shared in-cluster MariaDB. Set `false` to use an external database. |
 | `persistence.enabled` | bool | `true` | Enable a PVC for MariaDB data. |
 | `persistence.size` | string | `1Gi` | PVC size. |
 | `persistence.storageClass` | string | `""` | StorageClass name. Empty uses cluster default. |
 | `persistence.accessMode` | string | `ReadWriteOnce` | PVC access mode. |
 | `rootUser` | string | `root` | MariaDB root username. |
 | `rootHost` | string | `%` | Host mask for the root user grant. |
-| `dbSetupEnabled` | bool | `true` | Run the db-setup job to create per-instance databases and users. |
+| `dbSetupEnabled` | bool | `true` | Run an init container on first deploy to create each bot instance's database and user inside the shared MariaDB. |
 | `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead. Pulls `mariadb_root_password` and `mariadb_root_user` from `bebot.externalSecret`. |
 
 ### `bebot.mariadb.backup`
@@ -237,14 +239,34 @@ helm install my-bebot bebot/bebot -f my-values.yaml --wait --timeout 10m
 
 ## GCP Secret Payloads
 
-All credentials are stored in a **single GCP Secret Manager secret** as a flat JSON object. Each key is a plain-text string (no base64 encoding). Use the included helper script to generate the correct payload:
+All chart credentials live in a **single GCP Secret Manager secret** as a flat JSON object with plain-text string values (no base64 encoding). A helper script is included to generate the payload interactively:
 
 ```bash
-python tools/generate-gcp-secret.py | \
-  gcloud secrets versions add my-bebot-secrets --data-file=-
+# Generate and upload the main credentials secret:
+python charts/bebot/tools/generate-gcp-secret.py secrets --print-to-stdout | \
+  gcloud secrets versions add bebot-secrets --data-file=-
+
+# Generate registry pull credentials (separate secret):
+python charts/bebot/tools/generate-gcp-secret.py registry --print-to-stdout | \
+  gcloud secrets versions add bebot-regcred --data-file=-
 ```
 
-The JSON object must contain a key for every credential referenced by the chart. The expected keys are:
+The `secrets` subcommand prompts for each instance's credentials, the shared MariaDB root credentials, and optionally S3 backup credentials. The resulting JSON looks like:
+
+```json
+{
+  "pfs_ao_password":       "...",
+  "pfs_mariadb_user":      "pfsuser",
+  "pfs_mariadb_password":  "...",
+  "pfs_mariadb_database":  "pfs",
+  "mariadb_root_user":     "root",
+  "mariadb_root_password": "...",
+  "s3_access_key":         "...",
+  "s3_secret_key":         "..."
+}
+```
+
+The expected keys are:
 
 | Key | Used by |
 |---|---|
@@ -252,12 +274,12 @@ The JSON object must contain a key for every credential referenced by the chart.
 | `<instance-name>_mariadb_user` | Bot config ExternalSecret (one per instance) |
 | `<instance-name>_mariadb_password` | Bot config ExternalSecret (one per instance) |
 | `<instance-name>_mariadb_database` | Bot config ExternalSecret (one per instance) |
-| `mariadb_root_password` | MariaDB root credentials ExternalSecret |
 | `mariadb_root_user` | MariaDB root credentials ExternalSecret |
+| `mariadb_root_password` | MariaDB root credentials ExternalSecret |
 | `s3_access_key` | S3 backup credentials ExternalSecret (if enabled) |
 | `s3_secret_key` | S3 backup credentials ExternalSecret (if enabled) |
 
-For registry pull credentials, create a separate GCP secret and reference it from `extraObjects`.
+Registry pull credentials use a **separate** GCP secret with a single `dockerconfigjson` key. Reference it from `extraObjects` in your values file.
 
 ---
 
@@ -326,22 +348,14 @@ Recommended for production. Credentials are never stored in the Helm values or i
 
 #### 1. Create the secret in GCP
 
-Store all credentials in a single GCP secret as a flat JSON object with plain-text values:
-
-```json
-{
-  "myguild_ao_password": "change_me",
-  "myguild_mariadb_user": "myguilduser",
-  "myguild_mariadb_password": "change_me",
-  "myguild_mariadb_database": "myguilddb",
-  "mariadb_root_password": "change_me",
-  "mariadb_root_user": "root"
-}
-```
+Use the included helper to generate and upload the consolidated credentials payload:
 
 ```bash
-echo '{ ... }' | gcloud secrets versions add my-bebot-secrets --data-file=-
+python charts/bebot/tools/generate-gcp-secret.py secrets --print-to-stdout | \
+  gcloud secrets versions add my-bebot-secrets --data-file=-
 ```
+
+The script prompts for each bot instance's credentials, the shared MariaDB root password, and optionally S3 credentials. All values are stored as plain text.
 
 #### 2. Configure values.yaml
 
