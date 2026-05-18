@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/zznathans/bebot-helm/compare/1.2.3...1.2.4) (2026-05-18)
+
+
+### Bug Fixes
+
+* **pvc:** dont keep pvc on uninstall ([bad9376](https://github.com/zznathans/bebot-helm/commit/bad9376e33e1c56c83cde086df5437972dba8882))
+
 ## [1.2.3](https://github.com/zznathans/bebot-helm/compare/1.2.2...1.2.3) (2026-05-18)
 
 
