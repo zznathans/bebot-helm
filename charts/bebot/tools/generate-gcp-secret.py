@@ -3,17 +3,20 @@
 """
 Generate GCP Secret Manager payloads for ao-bebot ExternalSecrets.
 
-Each subcommand corresponds to a secret type used by the chart. The output is
-a JSON object that should be stored as the secret's value in GCP Secret Manager.
-The ExternalSecret resources in the chart will pull individual properties from it.
+All chart credentials live in a single GCP secret as a flat JSON object with
+plain-text values. Use the `secrets` subcommand to generate that payload.
+
+Registry pull credentials are a separate GCP secret; use the `registry`
+subcommand for those.
 
 Usage:
-  # Print payload to stdout:
-  python tools/generate-gcp-secret.py bot-config
+  # Generate the main bebot-secrets payload and upload directly:
+  python tools/generate-gcp-secret.py secrets --print-to-stdout | \\
+    gcloud secrets versions add bebot-secrets --data-file=-
 
-  # Pipe directly to gcloud:
-  python tools/generate-gcp-secret.py bot-config | \\
-    gcloud secrets versions add ao-bebot-pfs --data-file=-
+  # Generate registry pull credentials:
+  python tools/generate-gcp-secret.py registry --print-to-stdout | \\
+    gcloud secrets versions add bebot-regcred --data-file=-
 """
 
 import argparse
@@ -34,7 +37,6 @@ def prompt_value(label: str, default: str | None = None) -> str:
     if not value:
         if default is not None:
             return default
-        # Empty with no default — re-prompt
         return prompt_value(label, default)
     return value
 
@@ -93,104 +95,81 @@ def section(title: str, description: str) -> None:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
-def b64(value: str) -> str:
-    """Base64-encode a UTF-8 string. Chart ExternalSecrets use decodingStrategy: Base64."""
-    return base64.b64encode(value.encode()).decode()
-
-
-def cmd_bot_config(args: argparse.Namespace) -> None:
+def cmd_secrets(args: argparse.Namespace) -> None:
     """
-    Bot instance credentials.
+    Consolidated bebot-secrets payload.
 
-    Used when an instance has createSecret: false.
-    The chart ExternalSecret expects these keys:
-      ao_password, mariadb_user, mariadb_password, mariadb_database, mariadb_host
+    Generates a single JSON object containing all credentials used by the chart.
+    Keys are plain-text strings (no base64 encoding).
 
-    All values are stored base64-encoded because the ExternalSecret resources use
-    decodingStrategy: Base64 when fetching each property.
+    Per-instance keys (one set per bot instance):
+      <name>_ao_password, <name>_mariadb_user, <name>_mariadb_password,
+      <name>_mariadb_database
+
+    Shared MariaDB root keys:
+      mariadb_root_user, mariadb_root_password
+
+    Optional S3 backup keys (if using backup.s3.externalSecret.enabled: true):
+      s3_access_key, s3_secret_key
     """
+    data: dict = {}
+
+    # --- Bot instances ---
     section(
-        "Bot Instance Config",
-        "Credentials for a single bot instance (createSecret: false).",
+        "Bot Instance Credentials",
+        "Enter credentials for each bot instance (createSecret: false).\n"
+        "  Enter a blank instance name when done.",
     )
 
-    data = {
-        "ao_password":       b64(prompt_secret("AO account password")),
-        "mariadb_user":      b64(prompt_value("MariaDB username")),
-        "mariadb_password":  b64(prompt_secret("MariaDB password")),
-        "mariadb_database":  b64(prompt_value("MariaDB database name")),
-        "mariadb_host":      b64(prompt_value("MariaDB host", default="bebot-mariadb")),
-    }
+    while True:
+        name = input("Instance name (blank to finish): ").strip()
+        if not name:
+            break
+        print(f"\n  Credentials for instance '{name}':", file=sys.stderr)
+        data[f"{name}_ao_password"]      = prompt_secret(f"  [{name}] AO account password")
+        data[f"{name}_mariadb_user"]     = prompt_value(f"  [{name}] MariaDB username")
+        data[f"{name}_mariadb_password"] = prompt_secret(f"  [{name}] MariaDB password")
+        data[f"{name}_mariadb_database"] = prompt_value(f"  [{name}] MariaDB database name")
 
-    write_output(data, args)
-
-
-def cmd_mariadb_root(args: argparse.Namespace) -> None:
-    """
-    MariaDB root credentials.
-
-    Used when mariadb.createSecret: false.
-    The chart ExternalSecret expects these keys:
-      root-user, root-password
-
-    All values are stored base64-encoded because the ExternalSecret resources use
-    decodingStrategy: Base64 when fetching each property.
-    """
+    # --- MariaDB root ---
     section(
         "MariaDB Root Credentials",
-        "Root credentials for the in-cluster MariaDB (mariadb.createSecret: false).",
+        "Shared root credentials for the in-cluster MariaDB\n"
+        "  (mariadb.createSecret: false).",
     )
 
-    data = {
-        "root-user":     b64(prompt_value("Root username", default="root")),
-        "root-password": b64(prompt_secret("Root password")),
-    }
+    data["mariadb_root_user"]     = prompt_value("Root username", default="root")
+    data["mariadb_root_password"] = prompt_secret("Root password")
 
-    write_output(data, args)
-
-
-def cmd_s3_credentials(args: argparse.Namespace) -> None:
-    """
-    S3 backup credentials.
-
-    Used when backup.s3.externalSecret.enabled: true.
-    The chart ExternalSecret expects these keys:
-      access-key-id, secret-access-key
-
-    All values are stored base64-encoded because the ExternalSecret resources use
-    decodingStrategy: Base64 when fetching each property.
-    """
+    # --- S3 backup (optional) ---
     section(
-        "S3 Backup Credentials",
-        "AWS/S3-compatible credentials for the backup job"
-        " (backup.s3.externalSecret.enabled: true).",
+        "S3 Backup Credentials (optional)",
+        "Only needed when backup.s3.externalSecret.enabled: true.\n"
+        "  Press Enter with no input to skip.",
     )
 
-    data = {
-        "access-key-id":     b64(prompt_value("Access key ID")),
-        "secret-access-key": b64(prompt_secret("Secret access key")),
-    }
+    include_s3 = input("Include S3 credentials? [y/N]: ").strip().lower()
+    if include_s3 == "y":
+        data["s3_access_key"] = prompt_value("Access key ID")
+        data["s3_secret_key"] = prompt_secret("Secret access key")
 
     write_output(data, args)
 
 
 def cmd_registry(args: argparse.Namespace) -> None:
     """
-    Container registry pull credentials.
+    Container registry pull credentials (separate GCP secret).
 
     Produces a GCP secret with a single 'dockerconfigjson' key whose value is
-    the JSON docker config string. The extraObjects ExternalSecret in values.yaml
-    renders this into a kubernetes.io/dockerconfigjson secret.
+    the JSON docker config string. Reference it from extraObjects in values.yaml
+    to create a kubernetes.io/dockerconfigjson pull secret.
     """
     section(
         "Container Registry Credentials",
-        "Pull credentials for the bebot image registry (bebot-regcred ExternalSecret).",
+        "Pull credentials for the bebot image registry.",
     )
 
-    registry = prompt_value(
-        "Registry URL",
-        default="gitlab-ca-tor-1.yeetbox.net:5050",
-    )
+    registry = prompt_value("Registry URL", default="ghcr.io")
     username = prompt_value("Username")
     password = prompt_secret("Password / access token")
     email    = prompt_value("Email (leave blank to omit)", default="")
@@ -207,9 +186,6 @@ def cmd_registry(args: argparse.Namespace) -> None:
 
     docker_config = {"auths": {registry: auth_entry}}
 
-    # The ExternalSecret template references {{ .dockerconfigjson }}, so the
-    # GCP secret must contain a 'dockerconfigjson' property whose value is the
-    # raw docker config JSON string.
     data = {
         "dockerconfigjson": json.dumps(docker_config),
     }
@@ -222,10 +198,8 @@ def cmd_registry(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 COMMANDS = {
-    "bot-config":    (cmd_bot_config,    "Bot instance credentials (ao_password, mariadb_*)"),
-    "mariadb-root":  (cmd_mariadb_root,  "MariaDB root credentials (root-user, root-password)"),
-    "s3-credentials": (cmd_s3_credentials, "S3 credentials (access-key-id, secret-access-key)"),
-    "registry":      (cmd_registry,      "Container registry pull credentials (dockerconfigjson)"),
+    "secrets":  (cmd_secrets,  "All bebot credentials in one consolidated payload"),
+    "registry": (cmd_registry, "Container registry pull credentials (dockerconfigjson)"),
 }
 
 
@@ -246,6 +220,11 @@ def main() -> None:
         action="store_true",
         default=False,
         help="Print the JSON payload to stdout instead of requiring --output-file.",
+    )
+    parser.add_argument(
+        "-o", "--output-file",
+        metavar="PATH",
+        help="Write the JSON payload to this file instead of stdout.",
     )
 
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")

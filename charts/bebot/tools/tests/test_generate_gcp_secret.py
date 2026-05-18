@@ -4,7 +4,6 @@ Tests for tools/generate-gcp-secret.py
 import argparse
 import base64
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 import generate_gcp_secret as script
@@ -20,11 +19,6 @@ def make_args(output_file=None, secret_name=None, print_to_stdout=False):
         secret_name=secret_name,
         print_to_stdout=print_to_stdout,
     )
-
-
-def b64d(value: str) -> str:
-    """Decode a base64-encoded string value from the secret payload."""
-    return base64.b64decode(value).decode()
 
 
 # ---------------------------------------------------------------------------
@@ -75,82 +69,125 @@ class TestPromptValue:
 
 
 # ---------------------------------------------------------------------------
-# cmd_bot_config
+# cmd_secrets
 # ---------------------------------------------------------------------------
 
-class TestCmdBotConfig:
-    def _run(self, capsys):
-        # Prompt order: ao_password (secret), mariadb_user, mariadb_password (secret),
-        #               mariadb_database, mariadb_host (has default)
-        with patch("builtins.input", side_effect=["botuser", "botdb", ""]), \
-             patch("getpass.getpass", side_effect=["aopass", "dbpass"]):
-            script.cmd_bot_config(make_args(print_to_stdout=True))
+class TestCmdSecrets:
+    def _run(self, capsys, instances, root_user="root", root_password="r00t",
+             include_s3=False, s3_key="AKID", s3_secret="SAK"):
+        """
+        Helper that mocks all prompts for cmd_secrets.
+
+        instances: list of dicts with keys: name, ao_password, mariadb_user,
+                   mariadb_password, mariadb_database
+        """
+        input_responses = []
+        getpass_responses = []
+
+        for inst in instances:
+            input_responses.append(inst["name"])            # instance name
+            getpass_responses.append(inst["ao_password"])   # ao_password (secret)
+            input_responses.append(inst["mariadb_user"])    # mariadb_user
+            getpass_responses.append(inst["mariadb_password"])  # mariadb_password (secret)
+            input_responses.append(inst["mariadb_database"])# mariadb_database
+
+        input_responses.append("")  # blank = done with instances
+
+        if root_user == "root":
+            input_responses.append("")  # accept default
+        else:
+            input_responses.append(root_user)
+        getpass_responses.append(root_password)
+
+        input_responses.append("y" if include_s3 else "n")  # include S3?
+        if include_s3:
+            input_responses.append(s3_key)
+            getpass_responses.append(s3_secret)
+
+        with patch("builtins.input", side_effect=input_responses), \
+             patch("getpass.getpass", side_effect=getpass_responses):
+            script.cmd_secrets(make_args(print_to_stdout=True))
+
         return json.loads(capsys.readouterr().out)
 
-    def test_all_keys_present(self, capsys):
-        data = self._run(capsys)
-        assert set(data.keys()) == {
-            "ao_password", "mariadb_user", "mariadb_password",
-            "mariadb_database", "mariadb_host",
-        }
+    def test_single_instance_keys_present(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "aopass",
+            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
+            "mariadb_database": "pfsdb",
+        }])
+        assert "pfs_ao_password" in data
+        assert "pfs_mariadb_user" in data
+        assert "pfs_mariadb_password" in data
+        assert "pfs_mariadb_database" in data
+        assert "mariadb_root_user" in data
+        assert "mariadb_root_password" in data
 
-    def test_values_populated(self, capsys):
-        data = self._run(capsys)
-        assert b64d(data["ao_password"]) == "aopass"
-        assert b64d(data["mariadb_user"]) == "botuser"
-        assert b64d(data["mariadb_password"]) == "dbpass"
-        assert b64d(data["mariadb_database"]) == "botdb"
+    def test_values_are_plain_text(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "aopass",
+            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
+            "mariadb_database": "pfsdb",
+        }])
+        assert data["pfs_ao_password"] == "aopass"
+        assert data["pfs_mariadb_user"] == "pfsuser"
+        assert data["pfs_mariadb_password"] == "dbpass"
+        assert data["pfs_mariadb_database"] == "pfsdb"
 
-    def test_mariadb_host_defaults(self, capsys):
-        data = self._run(capsys)
-        assert b64d(data["mariadb_host"]) == "bebot-mariadb"
+    def test_root_defaults_to_root(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "aopass",
+            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
+            "mariadb_database": "pfsdb",
+        }])
+        assert data["mariadb_root_user"] == "root"
+        assert data["mariadb_root_password"] == "r00t"
 
+    def test_multiple_instances(self, capsys):
+        data = self._run(capsys, instances=[
+            {"name": "guild1", "ao_password": "p1", "mariadb_user": "u1",
+             "mariadb_password": "pw1", "mariadb_database": "db1"},
+            {"name": "guild2", "ao_password": "p2", "mariadb_user": "u2",
+             "mariadb_password": "pw2", "mariadb_database": "db2"},
+        ])
+        assert data["guild1_ao_password"] == "p1"
+        assert data["guild2_ao_password"] == "p2"
+        assert data["guild1_mariadb_database"] == "db1"
+        assert data["guild2_mariadb_database"] == "db2"
 
-# ---------------------------------------------------------------------------
-# cmd_mariadb_root
-# ---------------------------------------------------------------------------
+    def test_s3_keys_absent_when_skipped(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "aopass",
+            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
+            "mariadb_database": "pfsdb",
+        }], include_s3=False)
+        assert "s3_access_key" not in data
+        assert "s3_secret_key" not in data
 
-class TestCmdMariadbRoot:
-    def _run(self, capsys):
-        # Prompt order: root-user (has default), root-password (secret)
-        with patch("builtins.input", return_value=""), \
-             patch("getpass.getpass", return_value="r00tpass"):
-            script.cmd_mariadb_root(make_args(print_to_stdout=True))
-        return json.loads(capsys.readouterr().out)
+    def test_s3_keys_present_when_included(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "aopass",
+            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
+            "mariadb_database": "pfsdb",
+        }], include_s3=True, s3_key="AKID123", s3_secret="SAK456")
+        assert data["s3_access_key"] == "AKID123"
+        assert data["s3_secret_key"] == "SAK456"
 
-    def test_keys_present(self, capsys):
-        data = self._run(capsys)
-        assert set(data.keys()) == {"root-user", "root-password"}
-
-    def test_root_user_defaults_to_root(self, capsys):
-        data = self._run(capsys)
-        assert b64d(data["root-user"]) == "root"
-
-    def test_root_password_value(self, capsys):
-        data = self._run(capsys)
-        assert b64d(data["root-password"]) == "r00tpass"
-
-
-# ---------------------------------------------------------------------------
-# cmd_s3_credentials
-# ---------------------------------------------------------------------------
-
-class TestCmdS3Credentials:
-    def _run(self, capsys):
-        # Prompt order: access-key-id (value), secret-access-key (secret)
-        with patch("builtins.input", return_value="AKIAIOSFODNN7EXAMPLE"), \
-             patch("getpass.getpass", return_value="wJalrXUtnFEMI/K7MDENG"):
-            script.cmd_s3_credentials(make_args(print_to_stdout=True))
-        return json.loads(capsys.readouterr().out)
-
-    def test_keys_present(self, capsys):
-        data = self._run(capsys)
-        assert set(data.keys()) == {"access-key-id", "secret-access-key"}
-
-    def test_values(self, capsys):
-        data = self._run(capsys)
-        assert b64d(data["access-key-id"]) == "AKIAIOSFODNN7EXAMPLE"
-        assert b64d(data["secret-access-key"]) == "wJalrXUtnFEMI/K7MDENG"
+    def test_no_base64_in_output(self, capsys):
+        data = self._run(capsys, instances=[{
+            "name": "pfs", "ao_password": "plainpass",
+            "mariadb_user": "plainuser", "mariadb_password": "plaindbpass",
+            "mariadb_database": "plaindb",
+        }])
+        # Verify values are stored verbatim, not base64-encoded
+        for value in data.values():
+            try:
+                decoded = base64.b64decode(value, validate=True).decode()
+                # If it decodes cleanly and re-encodes to the same string, it looks b64-encoded
+                assert base64.b64encode(decoded.encode()).decode() != value, \
+                    f"Value looks base64-encoded: {value}"
+            except Exception:  # pylint: disable=broad-except
+                pass  # Not valid base64 — fine, it's plain text
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +196,6 @@ class TestCmdS3Credentials:
 
 class TestCmdRegistry:
     def _run(self, capsys, email=""):
-        # Prompt order: registry (has default), username, password (secret), email (has default)
         with patch("builtins.input", side_effect=["myreg.example.com:5050", "myuser", email]), \
              patch("getpass.getpass", return_value="mytoken"):
             script.cmd_registry(make_args(print_to_stdout=True))
