@@ -217,6 +217,24 @@ Both tests clean up their pods automatically on success (`hook-delete-policy: ho
 
 ---
 
+## Startup Ordering (ExternalSecrets Race)
+
+When using `createSecret: false`, Kubernetes may try to start pods before the ExternalSecrets Operator has synced secrets from GCP, causing `CreateContainerConfigError`. Two mitigations are built into the chart:
+
+### ArgoCD (recommended)
+
+All ExternalSecret resources carry `argocd.argoproj.io/sync-wave: "-1"` and all Deployments/CronJobs carry `sync-wave: "1"`. ArgoCD waits for each wave's resources to be healthy before applying the next wave, and its built-in ExternalSecret health check waits for `Ready: True` — so Deployments are never created until secrets are synced.
+
+### Plain Helm
+
+Use `--wait` with a generous timeout. Pods will initially crash-loop until secrets are available, then recover automatically:
+
+```bash
+helm install my-bebot bebot/bebot -f my-values.yaml --wait --timeout 10m
+```
+
+---
+
 ## GCP Secret Payloads
 
 All credentials are stored in a **single GCP Secret Manager secret** as a flat JSON object. Each key is a plain-text string (no base64 encoding). Use the included helper script to generate the correct payload:
