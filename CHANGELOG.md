@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/zznathans/bebot-helm/compare/1.2.0...1.2.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **helm:** add sync waves ([31aab7a](https://github.com/zznathans/bebot-helm/commit/31aab7a7f63aa4666cd272c47e092e2c10def62e))
+
 # [1.2.0](https://github.com/zznathans/bebot-helm/compare/1.1.15...1.2.0) (2026-05-17)
 
 
