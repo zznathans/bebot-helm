@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/zznathans/bebot-helm/compare/1.2.2...1.2.3) (2026-05-18)
+
+
+### Bug Fixes
+
+* **helm:** remove duplicate template ([529230f](https://github.com/zznathans/bebot-helm/commit/529230f5db6a97994423a7e57549d4dfc38da1eb))
+
 ## [1.2.2](https://github.com/zznathans/bebot-helm/compare/1.2.1...1.2.2) (2026-05-18)
 
 
