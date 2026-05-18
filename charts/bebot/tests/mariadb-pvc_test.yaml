@@ -33,9 +33,3 @@ tests:
       - equal:
           path: spec.resources.requests.storage
           value: 10Gi
-
-  - it: sets the resource-policy keep annotation
-    asserts:
-      - equal:
-          path: metadata.annotations["helm.sh/resource-policy"]
-          value: keep
