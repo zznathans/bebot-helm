@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/zznathans/bebot-helm/compare/1.2.1...1.2.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* **chart:** fix secret tool ([0f9a185](https://github.com/zznathans/bebot-helm/commit/0f9a18522ad651221983ff4c9d4a52783171ab21))
+
 ## [1.2.1](https://github.com/zznathans/bebot-helm/compare/1.2.0...1.2.1) (2026-05-18)
 
 
