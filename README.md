@@ -75,12 +75,13 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | `pvc.size` | string | `5Gi` | PVC size for backup storage. |
 | `pvc.storageClass` | string | `""` | StorageClass for backup PVC. |
 | `pvc.accessMode` | string | `ReadWriteOnce` | Access mode for backup PVC. |
-| `s3.bucket` | string | — | S3 bucket name. |
+| `s3.bucket` | string | — | S3 bucket name. Required when `externalSecret.enabled` is `false`; sourced from the external secret otherwise. |
 | `s3.region` | string | `us-east-1` | AWS region. |
-| `s3.endpoint` | string | `""` | Custom endpoint URL (MinIO, Backblaze, etc.). |
+| `s3.endpoint` | string | `""` | Custom endpoint URL (MinIO, Backblaze, etc.). Ignored when `externalSecret.enabled` is `true`; sourced from the external secret instead. |
 | `s3.path` | string | `backups/bebot` | Key prefix within the bucket. |
-| `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. |
-| `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret`. Pulls `s3_access_key` and `s3_secret_key` from `bebot.externalSecret`. |
+| `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `externalSecret.enabled` is `true`. |
+| `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret` from a dedicated external secret. The secret is identified by `s3.externalSecret.secretName`. |
+| `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
 
 ### `bebot`
 
@@ -185,7 +186,7 @@ The **Trivy** workflow runs independently on a weekly schedule to catch newly-di
 | `ci.yaml` | CI | Push to `main`; PR to `main` | Lint and test — pylint, pytest, yamllint, helm lint, helm unit tests, helm-docs auto-commit |
 | `release.yaml` | Release | CI passes on `main` (skips `[skip ci]` commits) | Runs [semantic-release](https://semantic-release.gitbook.io) to cut a versioned GitHub Release and update the changelog; uses a GitHub App token to bypass branch protection |
 | `docker.yaml` | Docker | GitHub Release published | Builds a multi-arch (`linux/amd64`, `linux/arm64`) image, pushes to `ghcr.io`, scans with Trivy, and uploads results to the Security tab; blocks on `CRITICAL`/`HIGH` unfixed CVEs |
-| `helm.yaml` | Release Charts | Docker workflow succeeds | Runs [chart-releaser](https://github.com/helm/chart-releaser-action) to package the chart and publish it to the `gh-pages` branch |
+| `helm.yaml` | Release Charts | Docker workflow succeeds | Runs [chart-releaser](https://github.com/helm/chart-releaser-action) to package the chart and publish it to the `gh-pages` branch; also copies `README.md` from `main` to `gh-pages` |
 | `static.yml` | Deploy static content to Pages | Release Charts succeeds (or manual `workflow_dispatch`) | Deploys the `gh-pages` branch to GitHub Pages, making the Helm repository publicly available |
 | `labeler.yaml` | Pull Request Labeler | Pull request opened / updated | Applies labels (`helm`, `docker`, `ci`, `documentation`, `tests`, `tools`, `examples`, `dependencies`) based on changed files using `.github/labeler.yml` |
 | `trivy.yml` | trivy | Weekly schedule (Mondays) | Builds the image from the Dockerfile and scans with Trivy; results are uploaded to the Security tab |
@@ -260,9 +261,7 @@ The `secrets` subcommand prompts for each instance's credentials, the shared Mar
   "pfs_mariadb_password":  "...",
   "pfs_mariadb_database":  "pfs",
   "mariadb_root_user":     "root",
-  "mariadb_root_password": "...",
-  "s3_access_key":         "...",
-  "s3_secret_key":         "..."
+  "mariadb_root_password": "..."
 }
 ```
 
@@ -276,10 +275,28 @@ The expected keys are:
 | `<instance-name>_mariadb_database` | Bot config ExternalSecret (one per instance) |
 | `mariadb_root_user` | MariaDB root credentials ExternalSecret |
 | `mariadb_root_password` | MariaDB root credentials ExternalSecret |
-| `s3_access_key` | S3 backup credentials ExternalSecret (if enabled) |
-| `s3_secret_key` | S3 backup credentials ExternalSecret (if enabled) |
 
 Registry pull credentials use a **separate** GCP secret with a single `dockerconfigjson` key. Reference it from `extraObjects` in your values file.
+
+### S3 Backup Secret
+
+S3 backup credentials live in their own dedicated external secret, separate from the main credentials secret. Point to it with `bebot.mariadb.backup.s3.externalSecret.secretName`. The secret must be a JSON object where `access_key` and `secret_key` are base64-encoded strings:
+
+```json
+{
+  "bucket_name": "my-backup-bucket",
+  "endpoint":    "https://s3.example.com",
+  "access_key":  "<base64-encoded access key>",
+  "secret_key":  "<base64-encoded secret key>"
+}
+```
+
+| Key | Used by |
+|---|---|
+| `bucket_name` | S3 backup ExternalSecret → `bucket` key in the credentials secret |
+| `endpoint` | S3 backup ExternalSecret → `endpoint` key in the credentials secret |
+| `access_key` | S3 backup ExternalSecret → `access-key-id` (decoded from base64) |
+| `secret_key` | S3 backup ExternalSecret → `secret-access-key` (decoded from base64) |
 
 ---
 
