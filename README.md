@@ -83,6 +83,20 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret` from a dedicated external secret. The secret is identified by `s3.externalSecret.secretName`. |
 | `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
 
+Backup dumps are gzip-compressed (`.sql.gz`).
+
+### `bebot.mariadb.backup.snapshot`
+
+A separate CronJob that dumps each database to a **fixed filename** (no timestamp), so each run overwrites the previous snapshot. Intended for short-term recovery, distinct from the timestamped long-term backups. Uses the same destination and S3 credentials as `bebot.mariadb.backup`.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Enable the snapshot CronJob. |
+| `intervalMinutes` | int | `15` | How often the snapshot runs, in minutes. |
+| `path` | string | `snapshots/bebot` | S3 key prefix for snapshot dumps. Ignored for PVC destination. |
+
+Snapshot dumps are gzip-compressed (`{db}_snapshot.sql.gz`) and stored separately from timestamped backups.
+
 ### `bebot`
 
 | Key | Type | Default | Description |
