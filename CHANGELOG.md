@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/zznathans/bebot-helm/compare/1.3.0...1.3.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **ci:** use global git config so gh-pages checkout can commit ([a186a22](https://github.com/zznathans/bebot-helm/commit/a186a229597bd1be0f43c34b9603abb13f39bbed)), closes [#pages](https://github.com/zznathans/bebot-helm/issues/pages) [#pages](https://github.com/zznathans/bebot-helm/issues/pages)
+
 # [1.3.0](https://github.com/zznathans/bebot-helm/compare/1.2.5...1.3.0) (2026-05-23)
 
 
