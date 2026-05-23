@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/zznathans/bebot-helm/compare/1.3.2...1.4.0) (2026-05-23)
+
+
+### Features
+
+* **backup:** gzip sql dumps before s3 upload ([219528b](https://github.com/zznathans/bebot-helm/commit/219528b44a1c5e1c5e57c48153eadb76885b3241))
+
 ## [1.3.2](https://github.com/zznathans/bebot-helm/compare/1.3.1...1.3.2) (2026-05-23)
 
 
