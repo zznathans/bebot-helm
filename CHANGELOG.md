@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/zznathans/bebot-helm/compare/1.4.0...1.5.0) (2026-05-23)
+
+
+### Features
+
+* **mariadb:** add snapshot CronJob with consistent filenames ([c5b8bf8](https://github.com/zznathans/bebot-helm/commit/c5b8bf8a9d10869d6481c791b0a52d32a0afc842))
+
 # [1.4.0](https://github.com/zznathans/bebot-helm/compare/1.3.2...1.4.0) (2026-05-23)
 
 
