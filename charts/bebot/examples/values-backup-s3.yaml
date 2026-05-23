@@ -4,17 +4,16 @@
 # directory to S3 using `aws s3 sync`. No PVC is created — dumps are written
 # to an emptyDir and discarded after upload.
 #
-# S3 credentials can be provided via a manually-created K8s Secret, or
-# sourced from GCP Secret Manager using the externalSecret block.
+# Two credential modes are supported:
 #
-# Prerequisite (manual credentials secret):
+# A) Manual secret — create it yourself, reference it by name:
 #   kubectl create secret generic my-s3-creds \
 #     --from-literal=access-key-id=AKIA... \
 #     --from-literal=secret-access-key=...
 #
-# Prerequisite (ExternalSecret credentials):
-#   python tools/generate-gcp-secret.py s3-credentials | \
-#     gcloud secrets versions add my-bebot-s3-creds --data-file=-
+# B) ExternalSecret — point at a secret in your external store that contains
+#    a JSON payload with bucket_name, endpoint, access_key (base64), secret_key (base64).
+#    bucket and endpoint are sourced from the secret; bucket/endpoint in values are ignored.
 #
 # Extend an existing values file with this overlay:
 #   helm upgrade my-bebot . \
@@ -28,19 +27,19 @@ bebot:
       schedule: "0 2 * * *"   # 2am daily
       destination: s3
       s3:
-        bucket: my-bebot-backups
         region: us-east-1
         path: backups/bebot
-        # endpoint: ""         # uncomment for non-AWS providers (MinIO, Backblaze B2, etc.)
         # image: amazon/aws-cli:2   # override if using a custom S3 CLI image
-        credentialsSecret: my-s3-creds   # K8s Secret with access-key-id and secret-access-key
 
-        # Remove the credentialsSecret above and use externalSecret instead
-        # to pull S3 credentials from GCP Secret Manager:
-        # credentialsSecret: my-s3-creds   # name of the Secret the ExternalSecret will create
-        # externalSecret:
-        #   enabled: true
-        #   gcpSecretName: my-bebot-s3-creds
-        #   secretStoreName: gcp-clusterstore
-        #   secretStoreKind: ClusterSecretStore
-        #   secretRefreshInterval: 1h
+        # --- Option A: manual credentials secret ---
+        # bucket: my-bebot-backups
+        # endpoint: ""             # for non-AWS providers (MinIO, Backblaze B2, etc.)
+        # credentialsSecret: my-s3-creds   # K8s Secret with access-key-id and secret-access-key
+
+        # --- Option B: ExternalSecret ---
+        # bucket, endpoint, access_key, secret_key come from the external secret.
+        # The external secret must be a JSON object with those four keys;
+        # access_key and secret_key must be base64-encoded within the JSON.
+        externalSecret:
+          enabled: true
+          secretName: my-bebot-s3-creds   # name of the secret in the external store
