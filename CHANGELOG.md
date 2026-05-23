@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/zznathans/bebot-helm/compare/1.5.1...1.5.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* **release:** bump ([f975e0f](https://github.com/zznathans/bebot-helm/commit/f975e0f0fcaa44299d58156c5c429f30deffd06f))
+
 ## [1.5.1](https://github.com/zznathans/bebot-helm/compare/1.5.0...1.5.1) (2026-05-23)
 
 
