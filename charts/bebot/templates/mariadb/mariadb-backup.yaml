@@ -82,14 +82,14 @@ spec:
                     secretKeyRef:
                       name: {{ $s3CredentialsSecret }}
                       key: bucket
-                - name: AWS_ENDPOINT_URL
+                - name: S3_ENDPOINT
                   valueFrom:
                     secretKeyRef:
                       name: {{ $s3CredentialsSecret }}
                       key: endpoint
                 {{- else }}
                 {{- if .Values.bebot.mariadb.backup.s3.endpoint }}
-                - name: AWS_ENDPOINT_URL
+                - name: S3_ENDPOINT
                   value: {{ .Values.bebot.mariadb.backup.s3.endpoint }}
                 {{- end }}
                 {{- end }}
@@ -97,9 +97,9 @@ spec:
               args:
                 - |
                   {{- if .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
-                  aws s3 sync /backup/ s3://${S3_BUCKET}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+                  aws s3 sync /backup/ s3://${S3_BUCKET}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/ ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
                   {{- else }}
-                  aws s3 sync /backup/ s3://{{ .Values.bebot.mariadb.backup.s3.bucket }}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+                  aws s3 sync /backup/ s3://{{ .Values.bebot.mariadb.backup.s3.bucket }}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/ ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
                   {{- end }}
               resources:
                 requests:
