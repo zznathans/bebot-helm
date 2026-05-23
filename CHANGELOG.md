@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/zznathans/bebot-helm/compare/1.3.1...1.3.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* **s3-backup:** explicit --endpoint-url and relax bucket validation ([1f0b0cf](https://github.com/zznathans/bebot-helm/commit/1f0b0cf539517941e056632fecd79e0a0a59036f))
+
 ## [1.3.1](https://github.com/zznathans/bebot-helm/compare/1.3.0...1.3.1) (2026-05-23)
 
 
