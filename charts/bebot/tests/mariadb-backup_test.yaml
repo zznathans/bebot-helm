@@ -72,7 +72,7 @@ tests:
       bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
     asserts:
       - failedTemplate:
-          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3"'
+          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3" and externalSecret.enabled is false'
 
   - it: fails when destination is s3 but credentialsSecret is empty and externalSecret is disabled
     set:

@@ -4,8 +4,8 @@
   {{- fail (printf "bebot.mariadb.backup.destination must be \"pvc\" or \"s3\", got %q" $destination) }}
 {{- end }}
 {{- if eq $destination "s3" }}
-  {{- if not .Values.bebot.mariadb.backup.s3.bucket }}
-    {{- fail "bebot.mariadb.backup.s3.bucket is required when destination is \"s3\"" }}
+  {{- if and (not .Values.bebot.mariadb.backup.s3.bucket) (not .Values.bebot.mariadb.backup.s3.externalSecret.enabled) }}
+    {{- fail "bebot.mariadb.backup.s3.bucket is required when destination is \"s3\" and externalSecret.enabled is false" }}
   {{- end }}
   {{- if and (not .Values.bebot.mariadb.backup.s3.credentialsSecret) (not .Values.bebot.mariadb.backup.s3.externalSecret.enabled) }}
     {{- fail "bebot.mariadb.backup.s3.credentialsSecret is required when destination is \"s3\" and externalSecret.enabled is false" }}
@@ -76,14 +76,31 @@ spec:
                       key: secret-access-key
                 - name: AWS_DEFAULT_REGION
                   value: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
+                {{- if .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
+                - name: S3_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: bucket
+                - name: AWS_ENDPOINT_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: endpoint
+                {{- else }}
                 {{- if .Values.bebot.mariadb.backup.s3.endpoint }}
                 - name: AWS_ENDPOINT_URL
                   value: {{ .Values.bebot.mariadb.backup.s3.endpoint }}
                 {{- end }}
+                {{- end }}
               command: ["/bin/sh", "-c"]
               args:
                 - |
+                  {{- if .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
+                  aws s3 sync /backup/ s3://${S3_BUCKET}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+                  {{- else }}
                   aws s3 sync /backup/ s3://{{ .Values.bebot.mariadb.backup.s3.bucket }}/{{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" }}/
+                  {{- end }}
               resources:
                 requests:
                   cpu: 100m

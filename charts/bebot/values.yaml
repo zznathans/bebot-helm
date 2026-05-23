@@ -72,8 +72,11 @@ bebot:
         # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
         credentialsSecret: ""
         externalSecret:
-          # -- When true, create an ExternalSecret to populate credentialsSecret from the upstream secret at bebot.externalSecret. When false (default), the secret named by credentialsSecret must already exist.
+          # -- When true, create an ExternalSecret to populate credentialsSecret from an external secret. When false (default), the secret named by credentialsSecret must already exist.
           enabled: false
+          # -- Name of the secret in the external store to pull S3 credentials from. Required when enabled is true.
+          # The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64).
+          secretName: ""
 
     # Controls how the MariaDB root credentials secret is managed.
     # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).

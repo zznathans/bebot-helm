@@ -29,3 +29,20 @@ jobs:
           pages_branch: gh-pages
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Copy README to gh-pages
+        run: cp README.md gh-pages/README.md
+
+      - name: Commit and push README
+        working-directory: gh-pages
+        run: |
+          git add README.md
+          git diff --cached --quiet && echo "README unchanged, skipping commit" && exit 0
+          git commit -m "docs: update README from main"
+          git push
