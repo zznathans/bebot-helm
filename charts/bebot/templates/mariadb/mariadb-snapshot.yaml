@@ -1,0 +1,160 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.backup.snapshot.enabled }}
+{{- $destination := .Values.bebot.mariadb.backup.destination | default "pvc" }}
+{{- if not (has $destination (list "pvc" "s3")) }}
+  {{- fail (printf "bebot.mariadb.backup.destination must be \"pvc\" or \"s3\", got %q" $destination) }}
+{{- end }}
+{{- if eq $destination "s3" }}
+  {{- if and (not .Values.bebot.mariadb.backup.s3.bucket) (not .Values.bebot.mariadb.backup.s3.externalSecret.enabled) }}
+    {{- fail "bebot.mariadb.backup.s3.bucket is required when destination is \"s3\" and externalSecret.enabled is false" }}
+  {{- end }}
+  {{- if and (not .Values.bebot.mariadb.backup.s3.credentialsSecret) (not .Values.bebot.mariadb.backup.s3.externalSecret.enabled) }}
+    {{- fail "bebot.mariadb.backup.s3.credentialsSecret is required when destination is \"s3\" and externalSecret.enabled is false" }}
+  {{- end }}
+{{- end }}
+{{- $s3CredentialsSecret := .Values.bebot.mariadb.backup.s3.credentialsSecret | default (printf "%s-mariadb-backup-s3-creds" .Release.Name) }}
+{{- $intervalMinutes := .Values.bebot.mariadb.backup.snapshot.intervalMinutes | default 15 }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-mariadb-snapshot
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  schedule: "*/{{ $intervalMinutes }} * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ .Release.Name }}-mariadb-snapshot
+        spec:
+          {{- if eq $destination "s3" }}
+          initContainers:
+            - name: mysqldump
+              image: {{ .Values.bebot.mariadb.image }}
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  command -v gzip >/dev/null 2>&1 || (apt-get update && apt-get install -y gzip)
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
+                    echo "Snapshotting ${db}..."
+                    mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" | gzip > /snapshot/${db}_snapshot.sql.gz
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: snapshot-storage
+                  mountPath: /snapshot
+          containers:
+            - name: s3-upload
+              image: {{ .Values.bebot.mariadb.backup.s3.image | default "amazon/aws-cli:2.34.42" }}
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: access-key-id
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: secret-access-key
+                - name: AWS_DEFAULT_REGION
+                  value: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" }}
+                {{- if .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
+                - name: S3_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: bucket
+                - name: S3_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $s3CredentialsSecret }}
+                      key: endpoint
+                {{- else }}
+                {{- if .Values.bebot.mariadb.backup.s3.endpoint }}
+                - name: S3_ENDPOINT
+                  value: {{ .Values.bebot.mariadb.backup.s3.endpoint }}
+                {{- end }}
+                {{- end }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  {{- if .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
+                  aws s3 sync /snapshot/ s3://${S3_BUCKET}/{{ .Values.bebot.mariadb.backup.snapshot.path | default "snapshots/bebot" }}/ --delete ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
+                  {{- else }}
+                  aws s3 sync /snapshot/ s3://{{ .Values.bebot.mariadb.backup.s3.bucket }}/{{ .Values.bebot.mariadb.backup.snapshot.path | default "snapshots/bebot" }}/ --delete ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
+                  {{- end }}
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: snapshot-storage
+                  mountPath: /snapshot
+          {{- else }}
+          containers:
+            - name: mariadb-snapshot
+              image: {{ .Values.bebot.mariadb.image }}
+              env:
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-password
+                - name: MYSQL_ROOT_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-mariadb-root
+                      key: root-user
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  command -v gzip >/dev/null 2>&1 || (apt-get update && apt-get install -y gzip)
+                  for db in $(mariadb -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} -N -e "SHOW DATABASES WHERE \`Database\` NOT IN ('information_schema','performance_schema','mysql','sys') AND \`Database\` NOT LIKE '#mysql50#%'"); do
+                    echo "Snapshotting ${db}..."
+                    mariadb-dump -h {{ .Release.Name }}-mariadb -u ${MYSQL_ROOT_USER} -p${MYSQL_ROOT_PASSWORD} "${db}" | gzip > /snapshot/${db}_snapshot.sql.gz
+                  done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              volumeMounts:
+                - name: snapshot-storage
+                  mountPath: /snapshot
+          {{- end }}
+          restartPolicy: OnFailure
+          volumes:
+            - name: snapshot-storage
+              {{- if eq $destination "s3" }}
+              emptyDir: {}
+              {{- else }}
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-mariadb-backup-pvc
+              {{- end }}
+{{- end }}

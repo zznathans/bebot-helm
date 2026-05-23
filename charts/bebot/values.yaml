@@ -77,6 +77,15 @@ bebot:
           # -- Name of the secret in the external store to pull S3 credentials from. Required when enabled is true.
           # The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64).
           secretName: ""
+      snapshot:
+        # -- Enable a frequent snapshot CronJob that overwrites a consistent set of dump files (no timestamp). Useful for
+        # -- keeping a recent copy separate from long-term timestamped backups. Requires the same destination and S3 config
+        # -- as the backup job when destination is "s3".
+        enabled: false
+        # -- How often to run the snapshot job, in minutes.
+        intervalMinutes: 15
+        # -- Key prefix/path within the S3 bucket where snapshot dumps are written. Overrides backup.s3.path for snapshots.
+        path: "snapshots/bebot"
 
     # Controls how the MariaDB root credentials secret is managed.
     # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).

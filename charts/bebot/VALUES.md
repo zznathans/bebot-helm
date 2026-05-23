@@ -42,6 +42,9 @@ helm chart for bebot
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup job (default: 2am daily). |
+| bebot.mariadb.backup.snapshot.enabled | bool | `false` | as the backup job when destination is "s3". |
+| bebot.mariadb.backup.snapshot.intervalMinutes | int | `15` | How often to run the snapshot job, in minutes. |
+| bebot.mariadb.backup.snapshot.path | string | `"snapshots/bebot"` | Key prefix/path within the S3 bucket where snapshot dumps are written. Overrides backup.s3.path for snapshots. |
 | bebot.mariadb.dbSetupEnabled | bool | `true` | Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally. |
 | bebot.mariadb.enabled | bool | `true` | Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database. |
 | bebot.mariadb.image | string | `"mariadb:11.4"` | Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs. |
