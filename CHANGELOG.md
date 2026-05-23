@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/zznathans/bebot-helm/compare/1.2.4...1.2.5) (2026-05-23)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies ([bd7a161](https://github.com/zznathans/bebot-helm/commit/bd7a1612e1ac75a4e4c01ee55774314c2637cb9a))
+
 ## [1.2.4](https://github.com/zznathans/bebot-helm/compare/1.2.3...1.2.4) (2026-05-18)
 
 
