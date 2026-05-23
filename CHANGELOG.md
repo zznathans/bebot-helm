@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/zznathans/bebot-helm/compare/1.2.5...1.3.0) (2026-05-23)
+
+
+### Features
+
+* **s3-backup:** pull credentials from dedicated external secret ([0b69fbb](https://github.com/zznathans/bebot-helm/commit/0b69fbb5f31f9de7db56b1fcbfee98115d14f6b8)), closes [#pages](https://github.com/zznathans/bebot-helm/issues/pages)
+
 ## [1.2.5](https://github.com/zznathans/bebot-helm/compare/1.2.4...1.2.5) (2026-05-23)
 
 
