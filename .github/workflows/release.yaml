@@ -63,3 +63,17 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Sync README to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          git checkout gh-pages
+          git checkout main -- README.md
+          if git diff --cached --quiet; then
+            echo "README.md unchanged, skipping commit"
+          else
+            git commit -m "docs: sync README from main [skip ci]"
+            git push origin gh-pages
+          fi
