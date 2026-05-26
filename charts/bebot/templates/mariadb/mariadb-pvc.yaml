@@ -4,6 +4,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Release.Name }}-mariadb-pvc
   namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   accessModes:
     - {{ .Values.bebot.mariadb.persistence.accessMode | default "ReadWriteOnce" }}
