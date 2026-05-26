@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/zznathans/bebot-helm/compare/1.5.2...1.5.3) (2026-05-26)
+
+
+### Bug Fixes
+
+* **pvc:** move to syncwave with deployment ([24d596e](https://github.com/zznathans/bebot-helm/commit/24d596e9e5dc10bc63854b5fde258ce053e9cce7))
+
 ## [1.5.2](https://github.com/zznathans/bebot-helm/compare/1.5.1...1.5.2) (2026-05-23)
 
 
