@@ -19,6 +19,11 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}-mariadb
+      {{- if .Values.bebot.mariadb.metrics.enabled }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9104"
+      {{- end }}
     spec:
       containers:
         - name: mariadb
