@@ -56,6 +56,7 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | bool | `true` | Deploy the shared in-cluster MariaDB. Set `false` to use an external database. |
+| `image` | string | `mariadb:11.4` | MariaDB container image. Used by the MariaDB deployment, init containers, and backup jobs. |
 | `persistence.enabled` | bool | `true` | Enable a PVC for MariaDB data. |
 | `persistence.size` | string | `1Gi` | PVC size. |
 | `persistence.storageClass` | string | `""` | StorageClass name. Empty uses cluster default. |
@@ -64,6 +65,15 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | `rootHost` | string | `%` | Host mask for the root user grant. |
 | `dbSetupEnabled` | bool | `true` | Run an init container on first deploy to create each bot instance's database and user inside the shared MariaDB. |
 | `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead. Pulls `mariadb_root_password` and `mariadb_root_user` from `bebot.externalSecret`. |
+
+### `bebot.mariadb.metrics`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Deploy a `prom/mysqld_exporter` sidecar and expose metrics on port 9104. |
+| `image` | string | `prom/mysqld-exporter:v0.16.0` | Container image for the mysqld_exporter sidecar. |
+| `grafanaDashboard.enabled` | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
+| `grafanaDashboard.label` | string | `grafana_dashboard` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |
 
 ### `bebot.mariadb.backup`
 
@@ -75,13 +85,13 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | `pvc.size` | string | `5Gi` | PVC size for backup storage. |
 | `pvc.storageClass` | string | `""` | StorageClass for backup PVC. |
 | `pvc.accessMode` | string | `ReadWriteOnce` | Access mode for backup PVC. |
-| `s3.bucket` | string | — | S3 bucket name. Required when `externalSecret.enabled` is `false`; sourced from the external secret otherwise. |
+| `s3.bucket` | string | — | S3 bucket name. Required when `s3.externalSecret.enabled` is `false`; sourced from the external secret otherwise. |
 | `s3.region` | string | `us-east-1` | AWS region. |
-| `s3.endpoint` | string | `""` | Custom endpoint URL (MinIO, Backblaze, etc.). Ignored when `externalSecret.enabled` is `true`; sourced from the external secret instead. |
+| `s3.endpoint` | string | `""` | Custom endpoint URL (MinIO, Backblaze, etc.). Ignored when `s3.externalSecret.enabled` is `true`; sourced from the external secret instead. |
 | `s3.path` | string | `backups/bebot` | Key prefix within the bucket. |
-| `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `externalSecret.enabled` is `true`. |
+| `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `s3.externalSecret.enabled` is `true`. |
 | `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret` from a dedicated external secret. The secret is identified by `s3.externalSecret.secretName`. |
-| `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
+| `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `s3.externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
 
 Backup dumps are gzip-compressed (`.sql.gz`).
 
@@ -104,6 +114,11 @@ Snapshot dumps are gzip-compressed (`{db}_snapshot.sql.gz`) and stored separatel
 | `imageRepository` | string | — | Container image repository. |
 | `imageTag` | string | `latest` | Image tag. |
 | `imagePullSecrets` | list | `[]` | Image pull secret names. |
+| `terminationGracePeriodSeconds` | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
+| `resources.requests.cpu` | string | `100m` | CPU request for the bot container. |
+| `resources.requests.memory` | string | `128Mi` | Memory request for the bot container. |
+| `resources.limits.cpu` | string | `500m` | CPU limit for the bot container. |
+| `resources.limits.memory` | string | `256Mi` | Memory limit for the bot container. |
 
 ### `bebot.instances[]`
 
@@ -198,7 +213,7 @@ The **Trivy** workflow runs independently on a weekly schedule to catch newly-di
 | File | Name | Trigger | Purpose |
 |---|---|---|---|
 | `ci.yaml` | CI | Push to `main`; PR to `main` | Lint and test — pylint, pytest, yamllint, helm lint, helm unit tests, helm-docs auto-commit |
-| `release.yaml` | Release | CI passes on `main` (skips `[skip ci]` commits) | Runs [semantic-release](https://semantic-release.gitbook.io) to cut a versioned GitHub Release and update the changelog; uses a GitHub App token to bypass branch protection |
+| `release.yaml` | Release | CI passes on `main` (skips `[skip ci]` commits) | Runs [semantic-release](https://semantic-release.gitbook.io) to cut a versioned GitHub Release and update the changelog; uses a GitHub App token to satisfy branch protection requirements |
 | `docker.yaml` | Docker | GitHub Release published | Builds a multi-arch (`linux/amd64`, `linux/arm64`) image, pushes to `ghcr.io`, scans with Trivy, and uploads results to the Security tab; blocks on `CRITICAL`/`HIGH` unfixed CVEs |
 | `helm.yaml` | Release Charts | Docker workflow succeeds | Runs [chart-releaser](https://github.com/helm/chart-releaser-action) to package the chart and publish it to the `gh-pages` branch; also copies `README.md` from `main` to `gh-pages` |
 | `static.yml` | Deploy static content to Pages | Release Charts succeeds (or manual `workflow_dispatch`) | Deploys the `gh-pages` branch to GitHub Pages, making the Helm repository publicly available |
