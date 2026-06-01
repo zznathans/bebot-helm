@@ -1,3 +1,11 @@
+## [1.5.5](https://github.com/zznathans/bebot-helm/compare/1.5.4...1.5.5) (2026-06-01)
+
+
+### Bug Fixes
+
+* **docs:** gaps, example file errors, and dead file reference ([bcee7e1](https://github.com/zznathans/bebot-helm/commit/bcee7e19b555b52a9639808dfd62237b743c262f))
+* **tools:** replace broken S3 section in cmd_secrets with s3-creds subcommand ([d6f2b05](https://github.com/zznathans/bebot-helm/commit/d6f2b059dc4edda2fe3677b240f116c31e66f025))
+
 ## [1.5.4](https://github.com/zznathans/bebot-helm/compare/1.5.3...1.5.4) (2026-05-26)
 
 
