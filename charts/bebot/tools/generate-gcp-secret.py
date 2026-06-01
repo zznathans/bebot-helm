@@ -3,18 +3,27 @@
 """
 Generate GCP Secret Manager payloads for ao-bebot ExternalSecrets.
 
-All chart credentials live in a single GCP secret as a flat JSON object with
-plain-text values. Use the `secrets` subcommand to generate that payload.
+Subcommands (each produces a separate GCP secret):
 
-Registry pull credentials are a separate GCP secret; use the `registry`
-subcommand for those.
+  secrets    Main credentials: bot instance passwords, MariaDB root credentials.
+             All values are plain-text strings.
+
+  s3-creds   S3 backup credentials: bucket_name, endpoint, access_key,
+             secret_key. access_key and secret_key are base64-encoded in the
+             output to match the chart's ExternalSecret decodingStrategy.
+
+  registry   Container registry pull credentials (dockerconfigjson).
 
 Usage:
-  # Generate the main bebot-secrets payload and upload directly:
+  # Main bebot credentials:
   python tools/generate-gcp-secret.py secrets --print-to-stdout | \\
     gcloud secrets versions add bebot-secrets --data-file=-
 
-  # Generate registry pull credentials:
+  # S3 backup credentials (separate secret, referenced by s3.externalSecret.secretName):
+  python tools/generate-gcp-secret.py s3-creds --print-to-stdout | \\
+    gcloud secrets versions add bebot-s3-creds --data-file=-
+
+  # Registry pull credentials:
   python tools/generate-gcp-secret.py registry --print-to-stdout | \\
     gcloud secrets versions add bebot-regcred --data-file=-
 """
@@ -108,9 +117,6 @@ def cmd_secrets(args: argparse.Namespace) -> None:
 
     Shared MariaDB root keys:
       mariadb_root_user, mariadb_root_password
-
-    Optional S3 backup keys (if using backup.s3.externalSecret.enabled: true):
-      s3_access_key, s3_secret_key
     """
     data: dict = {}
 
@@ -141,17 +147,36 @@ def cmd_secrets(args: argparse.Namespace) -> None:
     data["mariadb_root_user"]     = prompt_value("Root username", default="root")
     data["mariadb_root_password"] = prompt_secret("Root password")
 
-    # --- S3 backup (optional) ---
+    write_output(data, args)
+
+
+def cmd_s3_creds(args: argparse.Namespace) -> None:
+    """
+    S3 backup credentials payload (separate GCP secret).
+
+    Produces the dedicated secret referenced by
+    bebot.mariadb.backup.s3.externalSecret.secretName. The chart's
+    ExternalSecret uses decodingStrategy: Base64 for access_key and
+    secret_key, so those values are base64-encoded in this payload.
+    bucket_name and endpoint are stored as plain text.
+    """
     section(
-        "S3 Backup Credentials (optional)",
-        "Only needed when backup.s3.externalSecret.enabled: true.\n"
-        "  Press Enter with no input to skip.",
+        "S3 Backup Credentials",
+        "Credentials for the S3-compatible backup destination.\n"
+        "  Upload this as the secret named by s3.externalSecret.secretName.",
     )
 
-    include_s3 = input("Include S3 credentials? [y/N]: ").strip().lower()
-    if include_s3 == "y":
-        data["s3_access_key"] = prompt_value("Access key ID")
-        data["s3_secret_key"] = prompt_secret("Secret access key")
+    bucket   = prompt_value("Bucket name")
+    endpoint = prompt_value("Endpoint URL (leave blank for AWS S3)", default="")
+    ak       = prompt_value("Access key ID")
+    sk       = prompt_secret("Secret access key")
+
+    data = {
+        "bucket_name": bucket,
+        "endpoint":    endpoint,
+        "access_key":  base64.b64encode(ak.encode()).decode(),
+        "secret_key":  base64.b64encode(sk.encode()).decode(),
+    }
 
     write_output(data, args)
 
@@ -198,8 +223,9 @@ def cmd_registry(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 COMMANDS = {
-    "secrets":  (cmd_secrets,  "All bebot credentials in one consolidated payload"),
-    "registry": (cmd_registry, "Container registry pull credentials (dockerconfigjson)"),
+    "secrets":   (cmd_secrets,   "All bebot credentials in one consolidated payload"),
+    "s3-creds":  (cmd_s3_creds,  "S3 backup credentials (separate secret, base64-encoded keys)"),
+    "registry":  (cmd_registry,  "Container registry pull credentials (dockerconfigjson)"),
 }
 
 
