@@ -269,19 +269,23 @@ helm install my-bebot bebot/bebot -f my-values.yaml --wait --timeout 10m
 
 ## GCP Secret Payloads
 
-All chart credentials live in a **single GCP Secret Manager secret** as a flat JSON object with plain-text string values (no base64 encoding). A helper script is included to generate the payload interactively:
+A helper script generates GCP Secret Manager payloads interactively. Each subcommand produces a separate GCP secret:
 
 ```bash
-# Generate and upload the main credentials secret:
+# Main credentials secret (bot instances + MariaDB root):
 python charts/bebot/tools/generate-gcp-secret.py secrets --print-to-stdout | \
   gcloud secrets versions add bebot-secrets --data-file=-
 
-# Generate registry pull credentials (separate secret):
+# S3 backup credentials (separate secret — reference via s3.externalSecret.secretName):
+python charts/bebot/tools/generate-gcp-secret.py s3-creds --print-to-stdout | \
+  gcloud secrets versions add bebot-s3-creds --data-file=-
+
+# Registry pull credentials (separate secret):
 python charts/bebot/tools/generate-gcp-secret.py registry --print-to-stdout | \
   gcloud secrets versions add bebot-regcred --data-file=-
 ```
 
-The `secrets` subcommand prompts for each instance's credentials, the shared MariaDB root credentials, and optionally S3 backup credentials. The resulting JSON looks like:
+The `secrets` subcommand prompts for each instance's credentials and the shared MariaDB root credentials. The resulting JSON looks like:
 
 ```json
 {
