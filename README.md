@@ -1,6 +1,14 @@
 # ao-bebot Helm Chart
 
-Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy Online IRC bot) on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management.
+Helm chart for deploying an Anarchy Online chat bot on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management.
+
+**Note:** as of this version, the chart deploys `app/`, a from-scratch Python
+reimplementation of the core runtime of [BeBot](https://github.com/J-Soft/BeBot)
+(login/chat protocol, settings, security/access control, command dispatch) --
+not the upstream PHP project. Age of Conan support and most of upstream
+BeBot's optional feature modules (whois, alts, raid tools, IRC/Discord
+relays, etc.) are not part of this port. See `app/README.md` for exactly
+what's implemented and what isn't.
 
 ---
 
@@ -147,10 +155,10 @@ These are optional. All values have sensible defaults matching the original BeBo
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `guild` | string | `""` | AOC guild name. Leave empty for AO. |
-| `slave` | string | `""` | Name of a slave bot, if any. |
-| `periph` | int | `0` | Number of peripheral bots. |
-| `otherBots` | list | `[]` | List of other bot character names that are guild/raidbot members. Rendered as `$other_bots["name"] = true;` entries. |
+| `guild` | string | `""` | AOC guild name. Leave empty (the Python bot is AO-only; AOC is not ported). |
+| `slave` | string | `""` | _Not yet implemented by the Python bot -- accepted for schema compatibility only._ |
+| `periph` | int | `0` | _Not yet implemented by the Python bot -- accepted for schema compatibility only._ |
+| `otherBots` | list | `[]` | List of other bot character names that are guild/raidbot members. Rendered as `other_bots["name"] = True` entries. |
 
 #### Logging
 
@@ -164,15 +172,17 @@ These are optional. All values have sensible defaults matching the original BeBo
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `commandPrefix` | string | `!` | Bot command prefix. Must be a valid PHP regex character (e.g. use `\.` for `.`). |
+| `commandPrefix` | string | `!` | Bot command prefix character (e.g. `!`). |
 | `cronDelay` | int | `30` | Seconds before cron jobs run for the first time after startup. |
 | `tellDelay` | int | `2222` | Milliseconds between outgoing tells (anti-flood). |
 | `reconnectTime` | int | `60` | Seconds to wait before attempting reconnect after a disconnect. |
 | `accessAllBots` | bool | `false` | Allow cross-bot access in modules like BotStatistics. |
-| `coreDirectories` | string | `""` | Comma-separated list of additional core directories to load. |
-| `moduleDirectories` | string | `""` | Comma-separated list of additional module directories to load. |
+| `coreDirectories` | string | `""` | _Not yet implemented by the Python bot -- accepted for schema compatibility only._ |
+| `moduleDirectories` | string | `""` | _Not yet implemented by the Python bot -- accepted for schema compatibility only._ |
 
 #### Proxy
+
+_Not yet implemented by the Python bot (no HTTP lookup/self-defreeze helpers have been ported) -- both keys are accepted for schema compatibility only and currently have no effect._
 
 | Key | Type | Default | Description |
 |---|---|---|---|
