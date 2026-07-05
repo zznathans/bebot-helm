@@ -11,11 +11,15 @@ from __future__ import annotations
 
 from .access_control import AccessControl
 from .access_control_ui import AccessControlUi
+from .admins_ui import AdminsUi
+from .afk import Afk
 from .alias import Alias
 from .alts import Alts
 from .aochat_wrapper import ChatWrapper
+from .auto_user_add import AutoUserAdd
 from .bot_help import BotHelp
 from .bot_statistics import BotStatistics
+from .bot_statistics_ui import BotStatisticsUi
 from .buddy_list import BuddyList
 from .buddy_queue import BuddyQueue
 from .chat_queue import ChatQueue
@@ -30,7 +34,9 @@ from .notify import Notify
 from .online import Online
 from .player import Player
 from .player_notes import PlayerNotes
+from .player_notes_ui import PlayerNotesUi
 from .preferences import Preferences
+from .preferences_ui import PreferencesUi
 from .professions import Professions
 from .queue import Queue
 from .security import Security
@@ -84,3 +90,9 @@ def load_all(bot) -> None:
     CommandAliasUi(bot)
     ShortcutsUi(bot)
     StringFilterUi(bot)
+    PlayerNotesUi(bot)
+    PreferencesUi(bot)
+    BotStatisticsUi(bot)
+    AutoUserAdd(bot)
+    AdminsUi(bot)
+    Afk(bot)
