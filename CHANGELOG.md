@@ -1,3 +1,11 @@
+# [2.1.0](https://github.com/zznathans/bebot-helm/compare/2.0.2...2.1.0) (2026-07-05)
+
+
+### Features
+
+* add JSON log format option ([472ecd2](https://github.com/zznathans/bebot-helm/commit/472ecd2e38d90eb6ed1fb5cddc684b81fdb00163))
+* default log_format to json ([f90d092](https://github.com/zznathans/bebot-helm/commit/f90d092770220beea02630203574b406e24bb3a8))
+
 ## [2.0.2](https://github.com/zznathans/bebot-helm/compare/2.0.1...2.0.2) (2026-07-05)
 
 
