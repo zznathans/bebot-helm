@@ -1,3 +1,10 @@
+## [1.5.6](https://github.com/zznathans/bebot-helm/compare/1.5.5...1.5.6) (2026-07-05)
+
+
+### Bug Fixes
+
+* test release workflow after migrating to cycjimmy action ([75ee0e8](https://github.com/zznathans/bebot-helm/commit/75ee0e88bce8a826c4e0fda16ef480f9048ce16b))
+
 ## [1.5.5](https://github.com/zznathans/bebot-helm/compare/1.5.4...1.5.5) (2026-06-01)
 
 
