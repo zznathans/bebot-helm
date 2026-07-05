@@ -72,4 +72,4 @@ class BotHelp(BaseActiveModule):
             window += f"##highlight##{cmd}##end##: {desc}<br>"
         if help_data.get("notes"):
             window += f"<br>{help_data['notes']}"
-        return window
+        return self.bot.core("tools").make_blob(command, window)
