@@ -12,6 +12,17 @@ what's implemented and what isn't.
 
 ---
 
+[![Dependabot Updates](https://github.com/zznathans/bebot-helm/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/dependabot/dependabot-updates)
+[![Deploy static content to Pages](https://github.com/zznathans/bebot-helm/actions/workflows/static.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/static.yml)
+[![Docker](https://github.com/zznathans/bebot-helm/actions/workflows/docker.yaml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/docker.yaml)
+[![pages-build-deployment](https://github.com/zznathans/bebot-helm/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/pages/pages-build-deployment)
+[![Pylint](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml)
+[![Pylint](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml)
+[![Release Charts](https://github.com/zznathans/bebot-helm/actions/workflows/helm.yaml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/helm.yaml)
+[![trivy](https://github.com/zznathans/bebot-helm/actions/workflows/trivy.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/trivy.yml)
+
+---
+
 ## Features
 
 - Deploy one or more bot instances from a single chart
