@@ -10,14 +10,18 @@ constructor, so order only matters where a constructor calls
 from __future__ import annotations
 
 from .access_control import AccessControl
+from .alts import Alts
 from .aochat_wrapper import ChatWrapper
 from .bot_help import BotHelp
 from .bot_statistics import BotStatistics
 from .chat_queue import ChatQueue
 from .colors import Colors
 from .command_alias import CommandAlias
+from .flexible_security import FlexibleSecurity
 from .fun_filters import FunFilters
 from .logon_notifies import LogonNotifies
+from .notify import Notify
+from .online import Online
 from .player import Player
 from .player_notes import PlayerNotes
 from .preferences import Preferences
@@ -31,6 +35,7 @@ from .string_filter import StringFilter
 from .time import TimeCore
 from .timer_core import TimerCore
 from .tools import Tools
+from .user import User
 
 
 def load_all(bot) -> None:
@@ -56,3 +61,8 @@ def load_all(bot) -> None:
     LogonNotifies(bot)
     FunFilters(bot)
     StringFilter(bot)
+    FlexibleSecurity(bot)
+    Alts(bot)
+    Online(bot)
+    User(bot)
+    Notify(bot)

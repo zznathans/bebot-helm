@@ -14,14 +14,10 @@ Scope cut vs. the PHP original: no DB schema/schema-version migration
 logic exists in the original for this module (it's pure in-memory state),
 so nothing was dropped there.
 
-`core("notify")` (Main/15_Notify.php) is NOT ported yet -- it's part of a
-separate, more complex notify<->user cluster planned for a later batch.
-The `buddy()` method below still calls `self.bot.core("notify").check(name)`
-faithfully as the PHP does; until notify.py exists, `core("notify")`
-resolves to Bot's dummy-module fallback, so this call is inert scaffolding
-(it logs a CORE/ERROR line the first time and returns a value) rather than
-a real notify-eligibility check. This will start behaving correctly once
-Main/15_Notify.php is ported.
+`core("notify")` (Main/15_Notify.php) is now ported as main_modules/notify.py
+and implements `check(name)` with a matching signature, so the
+`self.bot.core("notify").check(name)` call in `buddy()` below is a real
+notify-eligibility check once a real Notify module is registered.
 """
 from __future__ import annotations
 

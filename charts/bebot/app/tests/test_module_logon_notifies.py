@@ -1,6 +1,7 @@
 from fakes import FakeSecurity, FakeSettings, RecordingModule
 
 from bebot.main_modules.logon_notifies import LogonNotifies
+from bebot.main_modules.notify import Notify
 
 
 class _FakeSettingsWithCreate(FakeSettings):
@@ -184,3 +185,34 @@ def test_bot_register_event_logon_notify_wires_into_real_module(bot):
 
     bot.unregister_event("logon_notify", None, sub)
     assert type(sub).__name__ not in real.modules
+
+
+# -- integration with a real Notify module (closes the "inert until Notify is
+# ported" gap the docstring used to call out) ---------------------------------
+
+def test_buddy_logon_uses_real_notify_check(bot, monkeypatch):
+    """LogonNotifies.buddy() calls core("notify").check(name); with a real
+    Notify module registered (instead of the RecordingModule stub), a name
+    that is actually on the notify list gets queued, and one that isn't
+    does not.
+    """
+    settings = _FakeSettingsWithCreate({
+        ("Logon_Notifies", "Enabled"): True,
+        ("Logon_Notifies", "Notify_Delay"): 5,
+        ("Logon_Notifies", "Startup_Delay"): 120,
+    })
+    bot.register_module(settings, "settings")
+    bot.register_module(FakeSecurity(access=True), "security")
+    monkeypatch.setattr(bot.db, "select", lambda sql, *a, **kw: [("Onnotify",)] if "notify = 1" in sql else [])
+    notify = Notify(bot)  # registers itself as core("notify") for real
+
+    module = LogonNotifies(bot)
+
+    module.buddy("Onnotify", 1)
+    assert "Onnotify" in module.notifies
+
+    module.buddy("Notonlist", 1)
+    assert "Notonlist" not in module.notifies
+
+    assert notify.check("Onnotify") is True
+    assert notify.check("Notonlist") is False
