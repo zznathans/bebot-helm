@@ -1,3 +1,15 @@
+# [2.5.0](https://github.com/zznathans/bebot-helm/compare/2.4.0...2.5.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* populate help_cache lazily on first help command, matching PHP ([1aab308](https://github.com/zznathans/bebot-helm/commit/1aab3084e16abd368034f051e43796e83ec52c68))
+
+
+### Features
+
+* port Points module (raid-point economy) ([31b2ce1](https://github.com/zznathans/bebot-helm/commit/31b2ce16e27eb126b1778b6f7c0d3ee367f9a40d))
+
 # [2.4.0](https://github.com/zznathans/bebot-helm/compare/2.3.0...2.4.0) (2026-07-05)
 
 
