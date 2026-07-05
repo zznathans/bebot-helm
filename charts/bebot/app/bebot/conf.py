@@ -49,6 +49,7 @@ class BotConfig:
     log: str = "chat"
     log_path: str = "./log"
     log_timestamp: str = "none"
+    log_format: str = "text"
     command_prefix: str = "!"
     cron_delay: int = 30
     tell_delay: int = 2222
@@ -113,6 +114,7 @@ def load_bot_config(conf_dir: str, name: str | None = None) -> BotConfig:
         log=get("log", "chat"),
         log_path=get("log_path", "./log"),
         log_timestamp=get("log_timestamp", "none"),
+        log_format=get("log_format", "text"),
         command_prefix=get("command_prefix", "!"),
         cron_delay=get("cron_delay", 30),
         tell_delay=get("tell_delay", 2222),

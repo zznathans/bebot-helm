@@ -12,6 +12,7 @@ Scope cut vs. the PHP original:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -51,6 +52,7 @@ class Bot:
             config.log_path, f"{self.botname.lower()}@RK{config.dimension}"
         )
         self.log_timestamp = config.log_timestamp
+        self.log_format = config.log_format
         os.makedirs(self.log_path, exist_ok=True)
 
         self.debug = False
@@ -591,17 +593,27 @@ class Bot:
         msg = msg.replace("</a>", "[/link]")
         msg = self.replace_string_tags(msg)
 
-        if self.log_timestamp == "date":
-            timestamp = f"[{time.strftime('%Y-%m-%d', time.gmtime())}]\t"
-        elif self.log_timestamp == "time":
-            timestamp = f"[{time.strftime('%H:%M:%S', time.gmtime())}]\t"
-        elif self.log_timestamp == "none":
-            timestamp = ""
+        if self.log_format == "json":
+            line = json.dumps({
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "bot": self.botname,
+                "first": first,
+                "second": second,
+                "message": msg,
+            }) + "\n"
+            print(line, end="")
         else:
-            timestamp = f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}]\t"
+            if self.log_timestamp == "date":
+                timestamp = f"[{time.strftime('%Y-%m-%d', time.gmtime())}]\t"
+            elif self.log_timestamp == "time":
+                timestamp = f"[{time.strftime('%H:%M:%S', time.gmtime())}]\t"
+            elif self.log_timestamp == "none":
+                timestamp = ""
+            else:
+                timestamp = f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}]\t"
 
-        line = f"{timestamp}[{first}]\t[{second}]\t{msg}\n"
-        print(f"{self.botname} {line}", end="")
+            line = f"{timestamp}[{first}]\t[{second}]\t{msg}\n"
+            print(f"{self.botname} {line}", end="")
 
         if second.lower() == "security":
             if self.guildbot:
