@@ -10,10 +10,13 @@ constructor, so order only matters where a constructor calls
 from __future__ import annotations
 
 from .access_control import AccessControl
+from .alias import Alias
 from .alts import Alts
 from .aochat_wrapper import ChatWrapper
 from .bot_help import BotHelp
 from .bot_statistics import BotStatistics
+from .buddy_list import BuddyList
+from .buddy_queue import BuddyQueue
 from .chat_queue import ChatQueue
 from .colors import Colors
 from .command_alias import CommandAlias
@@ -66,3 +69,6 @@ def load_all(bot) -> None:
     Online(bot)
     User(bot)
     Notify(bot)
+    Alias(bot)
+    BuddyList(bot)
+    BuddyQueue(bot)
