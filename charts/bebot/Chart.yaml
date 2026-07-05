@@ -2,7 +2,7 @@
 apiVersion: v2
 name: bebot
 
-description: helm chart for bebot
+description: Helm chart for bebot
 type: application
 
 appVersion: 1.5.5
