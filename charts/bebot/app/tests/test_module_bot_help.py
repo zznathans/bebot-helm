@@ -52,3 +52,16 @@ def test_show_help_unknown_command_returns_plain_error(bot):
 
     assert "does not exist" in result
     assert not result.startswith('<a href="text://')
+
+
+def test_bare_help_command_populates_cache_and_lists_registered_commands(bot):
+    """Regression test: command_handler() never called update_cache(), so
+    help_cache stayed {} forever and the bare `help` menu was always blank
+    -- matches Main/15_BotHelp.php's command_handler(), which lazily calls
+    update_cache() the first time help_cache is empty."""
+    help_module = make_help(bot)
+    FakeCommandModule(bot, {"description": "Does a thing."})
+
+    result = help_module.command_handler(bot.owner, "help", "tell")
+
+    assert "foo" in result

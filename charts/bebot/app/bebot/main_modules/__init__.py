@@ -46,6 +46,7 @@ from .ping import Ping
 from .player import Player
 from .player_notes import PlayerNotes
 from .player_notes_ui import PlayerNotesUi
+from .points import Points
 from .preferences import Preferences
 from .preferences_ui import PreferencesUi
 from .professions import Professions
@@ -99,6 +100,7 @@ def load_all(bot) -> None:
     FunFilters(bot)
     StringFilter(bot)
     FlexibleSecurity(bot)
+    Points(bot)
     Alts(bot)
     Online(bot)
     User(bot)

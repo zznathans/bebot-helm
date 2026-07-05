@@ -17,6 +17,8 @@ class BotHelp(BaseActiveModule):
         self.help_cache: dict[str, dict[str, str]] = {}
 
     def command_handler(self, name, msg, origin):
+        if not self.help_cache:
+            self.update_cache()
         parts = msg.split(" ")
         if len(parts) < 2 or not parts[1]:
             return self.show_help_menu(name, "source", origin)
