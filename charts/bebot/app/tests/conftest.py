@@ -38,6 +38,10 @@ class _FakeMySQL:
     def select(self, sql: str, as_dict: bool = False):
         return []
 
+    def return_query(self, sql: str):
+        self.queries.append(sql)
+        return True
+
     def real_escape_string(self, value) -> str:
         return str(value).replace("'", "\\'")
 
