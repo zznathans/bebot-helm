@@ -1,3 +1,11 @@
+# [2.2.0](https://github.com/zznathans/bebot-helm/compare/2.1.0...2.2.0) (2026-07-05)
+
+
+### Features
+
+* port Professions, Shortcuts, Time, PlayerNotes, Preferences modules ([27dcdb0](https://github.com/zznathans/bebot-helm/commit/27dcdb08c4f4b4a1959c073096acb5d907a0ef7e))
+* port Statistics, FunFilters, BotStatistics, StringFilter, LogonNotifies modules ([5396bf0](https://github.com/zznathans/bebot-helm/commit/5396bf08bb1d740fe38142410aaa2726b0cf7ab6))
+
 # [2.1.0](https://github.com/zznathans/bebot-helm/compare/2.0.2...2.1.0) (2026-07-05)
 
 
