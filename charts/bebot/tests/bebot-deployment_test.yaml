@@ -82,3 +82,21 @@ tests:
     asserts:
       - isNotEmpty:
           path: spec.template.metadata.annotations["checksum/conf"]
+
+  - it: mounts the conf Secret directly with no emptyDir or copy-configs init container
+    template: bebot/bebot-deployment.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - equal:
+          path: spec.template.spec.volumes[0].secret.items[0].path
+          value: bot_conf.py
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /BeBot/Conf
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].readOnly
+          value: true
+      - isNull:
+          path: spec.template.spec.initContainers

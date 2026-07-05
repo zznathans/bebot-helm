@@ -1,7 +1,7 @@
-#!/bin/ash
+#!/bin/sh
 # shellcheck shell=dash
-/usr/bin/php StartBot.php "$@" &
-PHP_PID=$!
-trap 'kill "$PHP_PID"' TERM
-wait "$PHP_PID"
+/usr/local/bin/python /BeBot/run.py "$@" &
+BOT_PID=$!
+trap 'kill "$BOT_PID"' TERM
+wait "$BOT_PID"
 exit $?
