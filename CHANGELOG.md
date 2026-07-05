@@ -1,3 +1,15 @@
+# [2.4.0](https://github.com/zznathans/bebot-helm/compare/2.3.0...2.4.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* wrap help-command output in an info-window blob, not a raw tell ([85daeb9](https://github.com/zznathans/bebot-helm/commit/85daeb97f802ed3b077b363c41c350c7a9499641))
+
+
+### Features
+
+* port About, BansManagerUi, Calc, Countdown, Is, Mail, News, Notify, nroll, OnlineCount, Ping, Quotes, Rally, Roll, Rules, Say, Scripts, SetDebug, Shutdown, TimerRelay, TimerUi, UserAdmin modules ([a0742f7](https://github.com/zznathans/bebot-helm/commit/a0742f7cbce2ab6c8f49543e3b78bd48736705f8))
+
 # [2.3.0](https://github.com/zznathans/bebot-helm/compare/2.2.0...2.3.0) (2026-07-05)
 
 
