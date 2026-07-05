@@ -50,17 +50,14 @@ jobs:
           # and can satisfy branch protection bypass rules.
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
       - uses: ./.github/actions/install-helm-docs
 
-      - name: Install semantic-release plugins
-        run: npm ci
-
-      - name: Release
-        run: npx semantic-release
+      - uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 25
+          extra_plugins: |
+            @semantic-release/changelog@6
+            @semantic-release/exec@7
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
