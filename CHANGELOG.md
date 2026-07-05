@@ -1,3 +1,18 @@
+# [2.3.0](https://github.com/zznathans/bebot-helm/compare/2.2.0...2.3.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* guard fire-and-forget asyncio scheduling against missing event loop ([517bf4d](https://github.com/zznathans/bebot-helm/commit/517bf4d3d3016d2495ffaf72b37ded24845640a3))
+
+
+### Features
+
+* port Alias, BuddyList, BuddyQueue modules ([c07098a](https://github.com/zznathans/bebot-helm/commit/c07098ae0c4c5184202489d95a44764885ecef6d))
+* port Alts, Online, User, Notify, FlexibleSecurity modules ([47b7131](https://github.com/zznathans/bebot-helm/commit/47b7131804fd719a6f3f0c668f320ed1c61081dd))
+* port PlayerNotesUi, PreferencesUi, BotStatisticsUi, AutoUserAdd, AdminsUi, Afk modules ([56d2d11](https://github.com/zznathans/bebot-helm/commit/56d2d114ed06004de4fc4ac8addec7a5a849b87b))
+* port SettingsUi, AccessControlUi, ColorConfigUi, CommandAliasUi, ShortCutsUi, StringFilterUi modules ([1416772](https://github.com/zznathans/bebot-helm/commit/14167726194a110479efadf0eda9b85939799452))
+
 # [2.2.0](https://github.com/zznathans/bebot-helm/compare/2.1.0...2.2.0) (2026-07-05)
 
 
