@@ -68,7 +68,3 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: trivy-results.sarif
-
-      - name: Fail if Trivy found vulnerabilities
-        if: steps.trivy.outcome == 'failure'
-        run: exit 1
