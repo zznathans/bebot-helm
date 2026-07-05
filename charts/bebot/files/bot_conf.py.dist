@@ -24,7 +24,7 @@ guild_id = {{ .guildId }}
 log = "{{ .log | default "chat" }}"
 log_path = "./log"
 log_timestamp = "{{ .logTimestamp | default "none" }}"
-log_format = "{{ .logFormat | default "text" }}"
+log_format = "{{ .logFormat | default "json" }}"
 
 command_prefix = "{{ .commandPrefix | default "!" }}"
 cron_delay = {{ .cronDelay | default 30 }}
