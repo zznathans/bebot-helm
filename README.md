@@ -12,6 +12,14 @@ what's implemented and what isn't.
 
 ---
 
+[![Dependabot Updates](https://github.com/zznathans/bebot-helm/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/dependabot/dependabot-updates)
+[![Pages Deployment](https://github.com/zznathans/bebot-helm/actions/workflows/static.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/static.yml)
+[![Docker Build](https://github.com/zznathans/bebot-helm/actions/workflows/docker.yaml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/docker.yaml)
+[![Pylint](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/pylint.yml)
+[![Charts Release](https://github.com/zznathans/bebot-helm/actions/workflows/helm.yaml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/helm.yaml)
+
+---
+
 ## Features
 
 - Deploy one or more bot instances from a single chart
