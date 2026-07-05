@@ -7,6 +7,7 @@ Player and AOChat directly.
 """
 from __future__ import annotations
 
+from ..bot import _fire_and_forget
 from ..commodities.base import BasePassiveModule
 
 
@@ -28,31 +29,25 @@ class ChatWrapper(BasePassiveModule):
         return self.bot.aoc.get_gname(group)
 
     def pgroup_join(self, group):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.privategroup_join(group))
+        return _fire_and_forget(self.bot.aoc.privategroup_join(group))
 
     def pgroup_leave(self, group):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.privategroup_leave(group))
+        return _fire_and_forget(self.bot.aoc.privategroup_leave(group))
 
     def pgroup_invite(self, user):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.privategroup_invite(user))
+        return _fire_and_forget(self.bot.aoc.privategroup_invite(user))
 
     def pgroup_kick(self, user):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.privategroup_kick(user))
+        return _fire_and_forget(self.bot.aoc.privategroup_kick(user))
 
     def pgroup_status(self, group):
         return self.bot.aoc.group_status(group) if hasattr(self.bot.aoc, "group_status") else False
 
     def buddy_add(self, user, que: bool = True):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.buddy_add(user))
+        return _fire_and_forget(self.bot.aoc.buddy_add(user))
 
     def buddy_remove(self, user):
-        import asyncio
-        return asyncio.ensure_future(self.bot.aoc.buddy_remove(user))
+        return _fire_and_forget(self.bot.aoc.buddy_remove(user))
 
     def buddy_exists(self, who):
         return self.bot.aoc.buddy_exists(who)

@@ -18,6 +18,22 @@ import re
 import time
 
 from .aochat.protocol import AOChat
+
+
+def _fire_and_forget(coro) -> None:
+    """Schedule coro on the running loop, or drop it if there isn't one.
+
+    asyncio.ensure_future() falls back to asyncio.get_event_loop(), which
+    raises RuntimeError instead of creating a loop as of Python 3.14. Callers
+    here only ever run inside the bot's own event loop; a caller invoking
+    this synchronously (e.g. a test) has nowhere to run the coroutine.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        coro.close()
+        return
+    asyncio.ensure_future(coro)
 from .commodities.base import BasePassiveModule
 from .conf import BotConfig
 from .mysql import MySQL
@@ -310,7 +326,7 @@ class Bot:
         if self.core("chat_queue").check_queue():
             to_name = self.core("player").name(to) if isinstance(to, int) else to
             self.log("TELL", "OUT", f"-> {to_name}: {msg}")
-            asyncio.ensure_future(self.aoc.send_tell(to, msg))
+            _fire_and_forget(self.aoc.send_tell(to, msg))
         else:
             self.core("chat_queue").into_queue(to, msg, "tell", low)
 
@@ -325,7 +341,7 @@ class Bot:
         msg = self.replace_string_tags(msg)
         if str(group).lower() == self.botname.lower() and self.core("settings").get("Core", "ColorizePGMSG"):
             msg = self.core("colors").colorize("normal", msg)
-        asyncio.ensure_future(self.aoc.send_privgroup(gid, msg))
+        _fire_and_forget(self.aoc.send_privgroup(gid, msg))
 
     def send_gc(self, msg: str, low=0, checksize=True) -> bool | None:
         if self.core("settings").get("Core", "DisableGC"):
@@ -335,7 +351,7 @@ class Bot:
         if self.core("settings").get("Core", "ColorizeGC"):
             msg = self.core("colors").colorize("normal", msg)
         if self.core("chat_queue").check_queue():
-            asyncio.ensure_future(self.aoc.send_group(self.guildname, msg))
+            _fire_and_forget(self.aoc.send_group(self.guildname, msg))
         else:
             self.core("chat_queue").into_queue(self.guildname, msg, "gc", low)
 
