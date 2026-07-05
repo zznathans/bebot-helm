@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/zznathans/bebot-helm/compare/2.0.1...2.0.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* dont fail trivy ([7dbe472](https://github.com/zznathans/bebot-helm/commit/7dbe4722f221bd4345e3f1fddfd7e8bc21906a77))
+
 ## [2.0.1](https://github.com/zznathans/bebot-helm/compare/2.0.0...2.0.1) (2026-07-05)
 
 
