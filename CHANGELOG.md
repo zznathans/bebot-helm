@@ -1,3 +1,20 @@
+# [2.0.0](https://github.com/zznathans/bebot-helm/compare/1.5.6...2.0.0) (2026-07-05)
+
+
+* feat!: replace PHP bot with Python reimplementation ([abfac62](https://github.com/zznathans/bebot-helm/commit/abfac6285ee613ff126d04e49262e86a61e65538))
+
+
+### BREAKING CHANGES
+
+* this is a different bot implementation than the PHP
+BeBot. AoC is no longer supported, and most optional PHP-era feature
+modules (whois, alts, IRC/Discord relays, raid tools, etc.) are not yet
+ported to Python. The Secret schema changed from Bot.conf/Mysql.conf/
+Aoaccounts.conf/ServerList.php keys to a single bot_conf.py key --
+existing deployments will pick up the new format automatically on
+upgrade (Helm/ExternalSecrets manage these keys), but any out-of-band
+tooling reading the old keys directly will need to be updated.
+
 ## [1.5.6](https://github.com/zznathans/bebot-helm/compare/1.5.5...1.5.6) (2026-07-05)
 
 
