@@ -1,6 +1,6 @@
 # bebot
 
-helm chart for bebot
+Helm chart for bebot
 
 **Version:** 1.5.5
 
