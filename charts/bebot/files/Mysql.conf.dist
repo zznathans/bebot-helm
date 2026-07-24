@@ -1,0 +1,51 @@
+<?php
+  /*
+  Database name
+  */
+  $dbase = "{{ .mariadbDatabase }}";
+
+  /*
+  Database username
+  */
+  $user = "{{ .mariadbUser }}";
+
+  /*
+  Database password
+  */
+  $pass = "{{ .mariadbPassword }}";
+
+  /*
+  Database server (usually localhost)
+  */
+  $server = "{{ .mariadbHost }}";
+
+  /*
+  Database table prefix.
+  The bot will use <botname> as prefix by default. Set tablePrefix in your
+  instance values to override this, or set it to an empty string for no prefix.
+  You may also use <botname> as part of the string and it will be replaced with
+  the botname in lowercase.
+  */
+{{- if kindIs "string" .tablePrefix }}
+  $table_prefix = "{{ .tablePrefix }}";
+{{- end }}
+
+  /*
+  If $table_prefix is defined, tables will be prefixed with a _ appended.
+  Set noUnderscore: true in your instance values to suppress the underscore.
+  */
+{{- if .noUnderscore }}
+  $nounderscore = TRUE;
+{{- end }}
+
+  /*
+  Master prefix table.
+  This is the master table containing information about all table names and
+  whether those use or don't use a prefix. Set masterTableName in your instance
+  values to override the default (botname_tablenames).
+  You may also use <botname> as part of the string.
+  */
+{{- if .masterTableName }}
+  $master_tablename = "{{ .masterTableName }}";
+{{- end }}
+?>
