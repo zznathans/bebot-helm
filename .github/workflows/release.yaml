@@ -52,7 +52,7 @@ jobs:
 
       - uses: ./.github/actions/install-helm-docs
 
-      - uses: cycjimmy/semantic-release-action@v6
+      - uses: cycjimmy/semantic-release-action@v4
         with:
           semantic_version: 25
           extra_plugins: |
