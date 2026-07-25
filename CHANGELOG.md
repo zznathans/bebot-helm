@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/zznathans/bebot-helm/compare/2.6.0...2.7.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** auto-track top traded items from ao-stonks.com ([c33c585](https://github.com/zznathans/bebot-helm/commit/c33c5853de516fba685a3c8c593f607dc480c334))
+
 # [2.6.0](https://github.com/zznathans/bebot-helm/compare/2.5.0...2.6.0) (2026-07-25)
 
 
