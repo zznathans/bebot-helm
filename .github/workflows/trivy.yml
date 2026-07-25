@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Build an image from Dockerfile
         run: |
