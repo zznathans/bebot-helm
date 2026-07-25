@@ -1,3 +1,15 @@
+# [2.6.0](https://github.com/zznathans/bebot-helm/compare/2.5.0...2.6.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** add market overview module with price history ([3ae2f8e](https://github.com/zznathans/bebot-helm/commit/3ae2f8e1093aef9e269a00f1a3b0a6cc578fbfa8)), closes [#72](https://github.com/zznathans/bebot-helm/issues/72)
+
+
+### Reverts
+
+* restore last PHP version (tag 1.5.6), undoing Python rewrite ([6258fc3](https://github.com/zznathans/bebot-helm/commit/6258fc388b9d3cf25e6bb72237a59acb7b203f5a))
+
 ## [1.5.6](https://github.com/zznathans/bebot-helm/compare/1.5.5...1.5.6) (2026-07-05)
 
 
