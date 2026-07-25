@@ -209,9 +209,7 @@ class Market extends BaseActiveModule
 		} else {
 			$inside .= $this->render_summary($orders);
 			$inside .= "\n";
-			$inside .= $this->render_history($id, $ql);
-			$inside .= "\n";
-			$inside .= $this->render_ql_breakdown($orders);
+			$inside .= $this->render_ql_table($orders, $id, $ql);
 			$inside .= "\n";
 			$inside .= $this->render_orders($orders);
 		}
@@ -245,60 +243,14 @@ class Market extends BaseActiveModule
 			}
 		}
 		$out = "__________Market Summary_________\n";
-		$out .= "Lowest sell price : " . ($bestSell !== null ? $this->format_credits($bestSell) : "-") . "\n";
-		$out .= "Highest buy price : " . ($bestBuy !== null ? $this->format_credits($bestBuy) : "-") . "\n";
+		$out .= "Lowest sell / Highest buy : " . ($bestSell !== null ? $this->format_credits($bestSell) : "-")
+			. "  /  " . ($bestBuy !== null ? $this->format_credits($bestBuy) : "-") . "\n";
 		if ($bestSell !== null && $bestBuy !== null) {
-			$out .= "Spread            : " . $this->format_credits($bestSell - $bestBuy) . "\n";
+			$out .= "Spread                    : " . $this->format_credits($bestSell - $bestBuy) . "\n";
 		}
-		$out .= "Sell orders       : " . count($orders->sell_orders) . "\n";
-		$out .= "Buy orders        : " . count($orders->buy_orders) . "\n";
-		$out .= "Last updated      : " . date("Y-m-d H:i:s") . " UTC\n";
+		$out .= "Orders                    : " . count($orders->sell_orders) . " sell / " . count($orders->buy_orders) . " buy\n";
+		$out .= "Last updated              : " . date("Y-m-d H:i:s") . " UTC\n";
 		return $out;
-	}
-
-	function render_history($aoid, $anchorQl)
-	{
-		$now = time();
-		$recent = $this->history_average($aoid, $now - (7 * 86400), $now);
-		$prior = $this->history_average($aoid, $now - (14 * 86400), $now - (7 * 86400));
-
-		if ($recent === null) {
-			return "__________Price History_________\nPrice history tracking just started for this item - check back later.\n";
-		}
-
-		$out = "__________Price History (7 days)_________\n";
-		$out .= "Avg sell price at QL" . $anchorQl . " : " . ($recent['avg_sell'] !== null
-			? $this->format_credits($recent['avg_sell']) . $this->format_trend($recent['avg_sell'], $prior['avg_sell'] ?? null)
-			: "no QL" . $anchorQl . " sell orders observed") . "\n";
-		$out .= "Avg buy price at QL" . $anchorQl . "  : " . ($recent['avg_buy'] !== null
-			? $this->format_credits($recent['avg_buy']) . $this->format_trend($recent['avg_buy'], $prior['avg_buy'] ?? null)
-			: "no QL" . $anchorQl . " buy orders observed") . "\n";
-
-		$range = $this->observed_range($aoid, $now - (7 * 86400), $now);
-		if ($range['min_sell'] !== null) {
-			$out .= "Lowest sell seen (any QL) : " . $this->format_credits($range['min_sell']) . "\n";
-		}
-		if ($range['max_buy'] !== null) {
-			$out .= "Highest buy seen (any QL): " . $this->format_credits($range['max_buy']) . "\n";
-		}
-
-		$out .= "Snapshots taken: " . $recent['count'] . "\n";
-		return $out;
-	}
-
-	/*
-	min_sell_price/max_buy_price already capture the all-QL extremes each snapshot (unlike
-	avg_sell_price/avg_buy_price, which are QL-anchored) - this just rolls them up over the window.
-	*/
-	function observed_range($aoid, $since, $until)
-	{
-		$base = " FROM #___market_history WHERE aoid = " . intval($aoid) . " AND ts >= " . intval($since) . " AND ts < " . intval($until);
-		$sell = $this->bot->db->select("SELECT MIN(min_sell_price)" . $base . " AND sell_count > 0");
-		$buy = $this->bot->db->select("SELECT MAX(max_buy_price)" . $base . " AND buy_count > 0");
-		return array(
-			'min_sell' => (!empty($sell) && $sell[0][0] !== null) ? (float) $sell[0][0] : null,
-			'max_buy' => (!empty($buy) && $buy[0][0] !== null) ? (float) $buy[0][0] : null
-		);
 	}
 
 	function history_average($aoid, $since, $until)
@@ -324,17 +276,17 @@ class Market extends BaseActiveModule
 		}
 		$change = (($current - $previous) / $previous) * 100;
 		$sign = $change >= 0 ? "+" : "";
-		return " (" . $sign . round($change, 1) . "% vs prior 7 days)";
+		return $sign . round($change, 1) . "%";
 	}
 
 	/*
-	Live-only (not tracked historically): buckets the current orders into 50-QL bands and shows
-	avg price + price/QL per band, since a single AOID's orders can span very different QLs and
-	price rarely scales linearly across the whole range. A buy order's min_ql/max_ql range can span
-	multiple bands - it's counted in every band it touches, since it's a genuinely valid offer at
-	any QL in that range.
+	Buckets the current live orders into 50-QL bands and shows avg price + price/QL per band, since
+	a single AOID's orders can span very different QLs and a blended average is meaningless. The band
+	containing the item's own QL is starred, and carries the one thing that IS tracked historically
+	(via history_average(), anchored to that exact QL) as a 7-day trend - other bands only ever show
+	live-right-now data, since we don't track history at any QL but the item's own.
 	*/
-	function render_ql_breakdown($orders)
+	function render_ql_table($orders, $aoid, $anchorQl)
 	{
 		$bandSize = 50;
 		$buckets = array();
@@ -357,25 +309,52 @@ class Market extends BaseActiveModule
 			}
 		}
 
-		if (empty($buckets)) {
-			return "";
+		$anchorBand = (int) floor(($anchorQl - 1) / $bandSize);
+		if (!isset($buckets[$anchorBand])) {
+			$buckets[$anchorBand] = array('sell' => array(), 'buy' => array());
 		}
 		ksort($buckets);
 
-		$out = "__________Price by QL Band_________\n";
-		$out .= $this->tab("QL BAND", 10) . " " . $this->tab("AVG SELL", 12) . " " . $this->tab("AVG BUY", 12)
-			. " " . $this->tab("SELL/QL", 10) . " " . $this->tab("BUY/QL", 10) . "\n";
+		$now = time();
+		$recent = $this->history_average($aoid, $now - (7 * 86400), $now);
+		$prior = $this->history_average($aoid, $now - (14 * 86400), $now - (7 * 86400));
+
+		$out = "__________Price by QL Band_________ (* = QL" . $anchorQl . ", this item)\n";
+		$out .= $this->tab("BAND", 12) . " " . $this->tab("AVG SELL", 12) . " " . $this->tab("AVG BUY", 12)
+			. " " . $this->tab("SELL/QL", 9) . " " . $this->tab("BUY/QL", 9) . " " . "7D TREND" . "\n";
+
 		foreach ($buckets as $band => $data) {
 			$lowQl = $band * $bandSize + 1;
 			$highQl = $lowQl + $bandSize - 1;
 			$midQl = ($lowQl + $highQl) / 2;
 			$avgSell = !empty($data['sell']) ? array_sum($data['sell']) / count($data['sell']) : null;
 			$avgBuy = !empty($data['buy']) ? array_sum($data['buy']) / count($data['buy']) : null;
-			$out .= $this->tab("QL" . $lowQl . "-" . $highQl, 10) . " "
+			$isAnchor = ($band == $anchorBand);
+			$label = ($isAnchor ? "*" : "") . "QL" . $lowQl . "-" . $highQl;
+
+			if (!$isAnchor) {
+				$trend = "-";
+			} elseif ($recent === null) {
+				$trend = "tracking just started";
+			} else {
+				$parts = array();
+				if ($recent['avg_sell'] !== null) {
+					$t = $this->format_trend($recent['avg_sell'], $prior['avg_sell'] ?? null);
+					$parts[] = "sell " . ($t !== "" ? $t : "n/a");
+				}
+				if ($recent['avg_buy'] !== null) {
+					$t = $this->format_trend($recent['avg_buy'], $prior['avg_buy'] ?? null);
+					$parts[] = "buy " . ($t !== "" ? $t : "n/a");
+				}
+				$trend = !empty($parts) ? implode(", ", $parts) : "no data yet";
+			}
+
+			$out .= $this->tab($label, 12) . " "
 				. $this->tab($avgSell !== null ? $this->format_credits($avgSell) : "-", 12) . " "
 				. $this->tab($avgBuy !== null ? $this->format_credits($avgBuy) : "-", 12) . " "
-				. $this->tab($avgSell !== null ? $this->format_credits($avgSell / $midQl) : "-", 10) . " "
-				. $this->tab($avgBuy !== null ? $this->format_credits($avgBuy / $midQl) : "-", 10) . "\n";
+				. $this->tab($avgSell !== null ? $this->format_credits($avgSell / $midQl) : "-", 9) . " "
+				. $this->tab($avgBuy !== null ? $this->format_credits($avgBuy / $midQl) : "-", 9) . " "
+				. $trend . "\n";
 		}
 		return $out;
 	}
@@ -425,12 +404,15 @@ class Market extends BaseActiveModule
 	function fetch_orders($aoid)
 	{
 		$url = rtrim($this->bot->core("settings")->get("Market", "ApiUrl"), "/") . "/v1.0/aoid/" . intval($aoid);
+		$this->bot->log("MARKET", "FETCH", "GET " . $url);
 		$content = $this->bot->core("tools")->get_site($url);
 		if ($content instanceof BotError) {
+			$this->bot->log("MARKET", "FETCH", "Failed fetching AOID " . $aoid . " from " . $url . ": " . $content->message());
 			return false;
 		}
 		$data = json_decode($content);
 		if (!is_object($data) || (!isset($data->buy_orders) && !isset($data->sell_orders))) {
+			$this->bot->log("MARKET", "FETCH", "Unexpected response fetching AOID " . $aoid . " from " . $url);
 			return false;
 		}
 		if (!isset($data->buy_orders)) {
@@ -439,6 +421,7 @@ class Market extends BaseActiveModule
 		if (!isset($data->sell_orders)) {
 			$data->sell_orders = array();
 		}
+		$this->bot->log("MARKET", "FETCH", "AOID " . $aoid . ": " . count($data->sell_orders) . " sell / " . count($data->buy_orders) . " buy order(s)");
 		return $data;
 	}
 
@@ -512,6 +495,9 @@ class Market extends BaseActiveModule
 			$this->bot->db->query("DELETE FROM #___market_history WHERE aoid = " . intval($row[0]));
 			$this->bot->db->query("DELETE FROM #___market_watch WHERE aoid = " . intval($row[0]));
 		}
+		if (!empty($expired)) {
+			$this->bot->log("MARKET", "POLL", "Expired " . count($expired) . " unwatched item(s) past WatchExpireDays");
+		}
 
 		// Prune old history snapshots.
 		$this->bot->db->query("DELETE FROM #___market_history WHERE ts < " . ($now - $retentionSeconds));
@@ -521,14 +507,20 @@ class Market extends BaseActiveModule
 			"SELECT aoid, ql FROM #___market_watch WHERE last_polled < " . ($now - $intervalSeconds)
 			. " ORDER BY last_polled ASC LIMIT " . $batchSize
 		);
+		$this->bot->log("MARKET", "POLL", "Poll cycle: " . count($due) . " item(s) due for refresh");
+		$updated = 0;
 		foreach ($due as $row) {
 			$aoid = intval($row[0]);
 			$anchorQl = intval($row[1]);
 			$orders = $this->fetch_orders($aoid);
 			if ($orders !== false) {
 				$this->snapshot($aoid, $orders, $anchorQl);
+				$updated++;
 			}
 			$this->bot->db->query("UPDATE #___market_watch SET last_polled = " . $now . " WHERE aoid = " . $aoid);
+		}
+		if (count($due) > 0) {
+			$this->bot->log("MARKET", "POLL", "Poll cycle complete: " . $updated . "/" . count($due) . " item(s) successfully updated");
 		}
 	}
 
@@ -579,6 +571,12 @@ class Market extends BaseActiveModule
 				. intval($minSell) . ", " . intval($maxBuy) . ", " . intval($avgSell) . ", " . intval($avgBuy) . ", "
 				. $anchorSellCount . ", " . $anchorBuyCount . ")"
 		);
+		$this->bot->log(
+			"MARKET",
+			"SNAPSHOT",
+			"AOID " . $aoid . " (anchor QL" . $anchorQl . "): recorded " . $sellCount . " sell / " . $buyCount . " buy order(s), "
+				. $anchorSellCount . " sell / " . $anchorBuyCount . " matching anchor QL"
+		);
 	}
 
 	/*
@@ -601,14 +599,19 @@ class Market extends BaseActiveModule
 		$pages = min($maxPages, (int) ceil($count / 20));
 		$sourceUrl = rtrim($this->bot->core("settings")->get("Market", "AutoTrackSourceUrl"), "/");
 
+		$this->bot->log("MARKET", "AUTOTRACK", "Resyncing top " . $count . " traded item(s) from " . $sourceUrl);
 		$aoids = array();
 		$pagesFetched = 0;
 		for ($page = 1; $page <= $pages; $page++) {
-			$content = $this->bot->core("tools")->get_site($sourceUrl . "/items/" . $page);
+			$pageUrl = $sourceUrl . "/items/" . $page;
+			$this->bot->log("MARKET", "AUTOTRACK", "GET " . $pageUrl);
+			$content = $this->bot->core("tools")->get_site($pageUrl);
 			if ($content instanceof BotError) {
+				$this->bot->log("MARKET", "AUTOTRACK", "Failed fetching " . $pageUrl . ": " . $content->message());
 				break;
 			}
 			if (!preg_match_all('/class="item-name"\s+href="\/item\/([0-9]+)"/i', $content, $matches)) {
+				$this->bot->log("MARKET", "AUTOTRACK", "No items parsed from " . $pageUrl . " - stopping this cycle");
 				break;
 			}
 			$pagesFetched++;
@@ -659,6 +662,12 @@ class Market extends BaseActiveModule
 		}
 
 		$this->bot->core("settings")->save("Market", "AutoTrackLastSync", $now);
+		$this->bot->log(
+			"MARKET",
+			"AUTOTRACK",
+			"Resync complete: " . $pagesFetched . " page(s) fetched, " . count($aoids) . " ranked AOID(s) found, "
+				. count($resolved) . " resolved against local aorefs and now auto-tracked"
+		);
 	}
 
 	function show_status()
