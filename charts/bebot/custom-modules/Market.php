@@ -407,12 +407,12 @@ class Market extends BaseActiveModule
 		$this->bot->log("MARKET", "FETCH", "GET " . $url);
 		$content = $this->bot->core("tools")->get_site($url);
 		if ($content instanceof BotError) {
-			$this->bot->log("MARKET", "FETCH", "Failed fetching AOID " . $aoid . " from " . $url . ": " . $content->message());
+			$this->bot->log("MARKET", "FETCH", "Failed fetching AOID " . $aoid . " from " . $url . ": " . $content->message(), true);
 			return false;
 		}
 		$data = json_decode($content);
 		if (!is_object($data) || (!isset($data->buy_orders) && !isset($data->sell_orders))) {
-			$this->bot->log("MARKET", "FETCH", "Unexpected response fetching AOID " . $aoid . " from " . $url);
+			$this->bot->log("MARKET", "FETCH", "Unexpected response fetching AOID " . $aoid . " from " . $url, true);
 			return false;
 		}
 		if (!isset($data->buy_orders)) {
@@ -496,7 +496,7 @@ class Market extends BaseActiveModule
 			$this->bot->db->query("DELETE FROM #___market_watch WHERE aoid = " . intval($row[0]));
 		}
 		if (!empty($expired)) {
-			$this->bot->log("MARKET", "POLL", "Expired " . count($expired) . " unwatched item(s) past WatchExpireDays");
+			$this->bot->log("MARKET", "POLL", "Expired " . count($expired) . " unwatched item(s) past WatchExpireDays", true);
 		}
 
 		// Prune old history snapshots.
@@ -520,7 +520,7 @@ class Market extends BaseActiveModule
 			$this->bot->db->query("UPDATE #___market_watch SET last_polled = " . $now . " WHERE aoid = " . $aoid);
 		}
 		if (count($due) > 0) {
-			$this->bot->log("MARKET", "POLL", "Poll cycle complete: " . $updated . "/" . count($due) . " item(s) successfully updated");
+			$this->bot->log("MARKET", "POLL", "Poll cycle complete: " . $updated . "/" . count($due) . " item(s) successfully updated", true);
 		}
 	}
 
@@ -599,7 +599,7 @@ class Market extends BaseActiveModule
 		$pages = min($maxPages, (int) ceil($count / 20));
 		$sourceUrl = rtrim($this->bot->core("settings")->get("Market", "AutoTrackSourceUrl"), "/");
 
-		$this->bot->log("MARKET", "AUTOTRACK", "Resyncing top " . $count . " traded item(s) from " . $sourceUrl);
+		$this->bot->log("MARKET", "AUTOTRACK", "Resyncing top " . $count . " traded item(s) from " . $sourceUrl, true);
 		$aoids = array();
 		$pagesFetched = 0;
 		for ($page = 1; $page <= $pages; $page++) {
@@ -607,11 +607,11 @@ class Market extends BaseActiveModule
 			$this->bot->log("MARKET", "AUTOTRACK", "GET " . $pageUrl);
 			$content = $this->bot->core("tools")->get_site($pageUrl);
 			if ($content instanceof BotError) {
-				$this->bot->log("MARKET", "AUTOTRACK", "Failed fetching " . $pageUrl . ": " . $content->message());
+				$this->bot->log("MARKET", "AUTOTRACK", "Failed fetching " . $pageUrl . ": " . $content->message(), true);
 				break;
 			}
 			if (!preg_match_all('/class="item-name"\s+href="\/item\/([0-9]+)"/i', $content, $matches)) {
-				$this->bot->log("MARKET", "AUTOTRACK", "No items parsed from " . $pageUrl . " - stopping this cycle");
+				$this->bot->log("MARKET", "AUTOTRACK", "No items parsed from " . $pageUrl . " - stopping this cycle", true);
 				break;
 			}
 			$pagesFetched++;
@@ -629,7 +629,7 @@ class Market extends BaseActiveModule
 		// A transient outage (or a markup change breaking the parser) shouldn't wipe out the
 		// existing auto-tracked set - only proceed if we actually got at least one page of results.
 		if ($pagesFetched == 0) {
-			$this->bot->log("MARKET", "AUTOTRACK", "Could not fetch item ranking from " . $sourceUrl . ", skipping this cycle.");
+			$this->bot->log("MARKET", "AUTOTRACK", "Could not fetch item ranking from " . $sourceUrl . ", skipping this cycle.", true);
 			return;
 		}
 
@@ -666,7 +666,8 @@ class Market extends BaseActiveModule
 			"MARKET",
 			"AUTOTRACK",
 			"Resync complete: " . $pagesFetched . " page(s) fetched, " . count($aoids) . " ranked AOID(s) found, "
-				. count($resolved) . " resolved against local aorefs and now auto-tracked"
+				. count($resolved) . " resolved against local aorefs and now auto-tracked",
+			true
 		);
 	}
 
