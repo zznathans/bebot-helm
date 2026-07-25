@@ -1,3 +1,10 @@
+## [2.7.1](https://github.com/zznathans/bebot-helm/compare/2.7.0...2.7.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **bot:** escape apostrophes in market chatcmd links ([c0d55d8](https://github.com/zznathans/bebot-helm/commit/c0d55d8681e898952eec18e5a50e135ea8d3d6a5))
+
 # [2.7.0](https://github.com/zznathans/bebot-helm/compare/2.6.0...2.7.0) (2026-07-25)
 
 
