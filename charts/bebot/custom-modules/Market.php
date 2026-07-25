@@ -165,9 +165,10 @@ class Market extends BaseActiveModule
 
 		$this->watch($id, $itemName, $ql, $icon);
 
+		$linkName = $this->chatcmd_safe($itemName);
 		$inside = "<img src=rdb://" . $icon . "> <a href='itemref://" . $id . "/" . $id . "/" . $ql . "'>" . $itemName . "</a> QL" . $ql . "\n";
-		$inside .= "[" . $this->bot->core("tools")->chatcmd("items " . $itemName, "Full Item Info") . "]"
-			. " [" . $this->bot->core("tools")->chatcmd("gmi " . $id . " " . $itemName, "Full Order List") . "]\n\n";
+		$inside .= "[" . $this->bot->core("tools")->chatcmd("items " . $linkName, "Full Item Info") . "]"
+			. " [" . $this->bot->core("tools")->chatcmd("gmi " . $id . " " . $linkName, "Full Order List") . "]\n\n";
 
 		$orders = $this->fetch_orders($id);
 		if ($orders === false) {
@@ -338,6 +339,17 @@ class Market extends BaseActiveModule
 			return $sign . round($value / 1000, 1) . "k";
 		}
 		return $sign . number_format($value, 0);
+	}
+
+	/*
+	chatcmd() (Main/14_Tools.php) builds an unescaped href='...' - a literal apostrophe in $text
+	(e.g. "Keeper's Physique") breaks that attribute and garbles the whole link. Same workaround
+	already used elsewhere in the codebase for item names in chatcmd/itemref links, e.g.
+	Modules/Ao/Bank.php's str_replace('\'','`',...).
+	*/
+	function chatcmd_safe($text)
+	{
+		return str_replace("'", "`", $text);
 	}
 
 	function tab($value, $length)
