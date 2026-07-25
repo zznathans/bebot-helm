@@ -1,0 +1,3 @@
+[submodule "charts/bebot/vendor/BeBot"]
+	path = charts/bebot/vendor/BeBot
+	url = https://github.com/J-Soft/BeBot.git
