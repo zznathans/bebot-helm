@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/zznathans/bebot-helm/compare/2.8.1...2.9.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** unify price history into QL band table, add market logging ([3a9b08f](https://github.com/zznathans/bebot-helm/commit/3a9b08f1469eddfed39277bdfd0a23104b29c7c4))
+
 ## [2.8.1](https://github.com/zznathans/bebot-helm/compare/2.8.0...2.8.1) (2026-07-25)
 
 
