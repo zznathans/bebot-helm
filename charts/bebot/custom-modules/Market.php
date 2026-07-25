@@ -21,6 +21,7 @@ class Market extends BaseActiveModule
 		$this->help['description'] = "Market overview: search for an item and see a summary, price history and live orders.";
 		$this->help['command']['market <item name>'] = "Search for an item by (partial) name";
 		$this->help['command']['market <aoid>'] = "Show the full market overview for a specific item ID";
+		$this->help['command']['market status'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
 
 		$this->bot->core("settings")
 			->create("Market", "ApiUrl", "https://gmi.nadybot.org", "What's the GMI search API URL we should use (Nadybot's by default) ?");
@@ -32,17 +33,36 @@ class Market extends BaseActiveModule
 			->create("Market", "WatchExpireDays", 30, "Stop polling an item if nobody has looked it up again within this many days");
 		$this->bot->core("settings")
 			->create("Market", "PollBatchSize", 25, "Maximum number of watched items to re-poll per timer cycle");
+		$this->bot->core("settings")
+			->create("Market", "AutoTrackEnabled", true, "Should the bot automatically track price history for the most actively-traded items (sourced from ao-stonks.com) ?", "On;Off");
+		$this->bot->core("settings")
+			->create("Market", "AutoTrackCount", 100, "How many of the most actively-traded items should be auto-tracked ?");
+		$this->bot->core("settings")
+			->create("Market", "AutoTrackIntervalMinutes", 60, "How often (in minutes) should the auto-tracked item list be resynced from ao-stonks.com ?");
+		$this->bot->core("settings")
+			->create("Market", "AutoTrackSourceUrl", "https://ao-stonks.com", "What site should be used to determine the most actively-traded items ?");
 
 		$this->table();
 
 		$this->bot->core("timer")->register_callback("Market", $this);
 		$existing = $this->bot->core("timer")->list_timed_events("Market");
-		if (empty($existing)) {
+		$scheduled = array();
+		foreach ($existing as $timer) {
+			$scheduled[] = $timer['name'];
+		}
+		if (!in_array("Market-Poll", $scheduled)) {
 			$interval = 60 * intval($this->bot->core("settings")->get("Market", "PollIntervalMinutes"));
 			if ($interval < 60) {
 				$interval = 60;
 			}
 			$this->bot->core("timer")->add_timer(true, "Market", $interval, "Market-Poll", "internal", $interval, "None");
+		}
+		if (!in_array("Market-AutoTrack", $scheduled)) {
+			$autoInterval = 60 * intval($this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes"));
+			if ($autoInterval < 60) {
+				$autoInterval = 60;
+			}
+			$this->bot->core("timer")->add_timer(true, "Market", $autoInterval, "Market-AutoTrack", "internal", $autoInterval, "None");
 		}
 	}
 
@@ -76,16 +96,27 @@ class Market extends BaseActiveModule
 		if (!$this->bot->db->get_version("market_history")) {
 			$this->bot->db->set_version("market_history", 1);
 		}
+		if ($this->bot->db->get_version("market_watch") < 2) {
+			$this->bot->db->update_table(
+				"market_watch",
+				"auto_tracked",
+				"add",
+				"ALTER TABLE #___market_watch ADD COLUMN auto_tracked TINYINT NOT NULL DEFAULT 0"
+			);
+			$this->bot->db->set_version("market_watch", 2);
+		}
 	}
 
 	function command_handler($name, $msg, $channel)
 	{
-		if (preg_match('/^(?:market|mkt)\s+([0-9]+)\s*$/i', $msg, $info)) {
+		if (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
+			return $this->show_status();
+		} elseif (preg_match('/^(?:market|mkt)\s+([0-9]+)\s*$/i', $msg, $info)) {
 			return $this->show_overview($name, intval($info[1]));
 		} elseif (preg_match('/^(?:market|mkt)\s+(.+)$/i', $msg, $info)) {
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>";
+			return "Usage: market <item name>  or  market <aoid>  or  market status";
 		}
 	}
 
@@ -330,6 +361,8 @@ class Market extends BaseActiveModule
 	{
 		if ($name == "Market-Poll") {
 			$this->poll_market();
+		} elseif ($name == "Market-AutoTrack") {
+			$this->sync_top_traded_items();
 		}
 	}
 
@@ -342,8 +375,10 @@ class Market extends BaseActiveModule
 		$batchSize = intval($this->bot->core("settings")->get("Market", "PollBatchSize"));
 
 		// Drop items nobody has re-searched for within the expiry window, and their history with them.
+		// Auto-tracked items are exempt - they're removed explicitly by sync_top_traded_items() instead,
+		// once they actually fall out of the top-traded list.
 		$expired = $this->bot->db->select(
-			"SELECT aoid FROM #___market_watch WHERE GREATEST(last_polled, first_seen) < " . ($now - $expireSeconds)
+			"SELECT aoid FROM #___market_watch WHERE auto_tracked = 0 AND GREATEST(last_polled, first_seen) < " . ($now - $expireSeconds)
 		);
 		foreach ($expired as $row) {
 			$this->bot->db->query("DELETE FROM #___market_history WHERE aoid = " . intval($row[0]));
@@ -395,6 +430,120 @@ class Market extends BaseActiveModule
 				. intval($aoid) . ", " . time() . ", " . $sellCount . ", " . $buyCount . ", "
 				. intval($minSell) . ", " . intval($maxBuy) . ", " . intval($avgSell) . ", " . intval($avgBuy) . ")"
 		);
+	}
+
+	/*
+	Auto-tracks the most actively-traded items, sourced from ao-stonks.com's default item listing
+	(sorted by open buy-order count descending - confirmed via direct inspection that /items/{page}
+	server-renders 20 items per page in that order, while its "Per Page"/sort controls are
+	client-JS-driven and have no effect on a plain GET, making page-by-page fetching the only
+	reliable way to pull a ranked list here).
+	*/
+	function sync_top_traded_items()
+	{
+		if (!$this->bot->core("settings")->get("Market", "AutoTrackEnabled")) {
+			return;
+		}
+		$count = intval($this->bot->core("settings")->get("Market", "AutoTrackCount"));
+		if ($count < 1) {
+			return;
+		}
+		$maxPages = 50; // hard safety ceiling regardless of configured count (50 * 20 = 1000 items)
+		$pages = min($maxPages, (int) ceil($count / 20));
+		$sourceUrl = rtrim($this->bot->core("settings")->get("Market", "AutoTrackSourceUrl"), "/");
+
+		$aoids = array();
+		$pagesFetched = 0;
+		for ($page = 1; $page <= $pages; $page++) {
+			$content = $this->bot->core("tools")->get_site($sourceUrl . "/items/" . $page);
+			if ($content instanceof BotError) {
+				break;
+			}
+			if (!preg_match_all('/class="item-name"\s+href="\/item\/([0-9]+)"/i', $content, $matches)) {
+				break;
+			}
+			$pagesFetched++;
+			foreach ($matches[1] as $aoid) {
+				$aoid = intval($aoid);
+				if (!in_array($aoid, $aoids, true)) {
+					$aoids[] = $aoid;
+				}
+			}
+			if (count($aoids) >= $count) {
+				break;
+			}
+		}
+
+		// A transient outage (or a markup change breaking the parser) shouldn't wipe out the
+		// existing auto-tracked set - only proceed if we actually got at least one page of results.
+		if ($pagesFetched == 0) {
+			$this->bot->log("MARKET", "AUTOTRACK", "Could not fetch item ranking from " . $sourceUrl . ", skipping this cycle.");
+			return;
+		}
+
+		$aoids = array_slice($aoids, 0, $count);
+		$resolved = array();
+		if (!empty($aoids)) {
+			$refs = $this->bot->db->select(
+				"SELECT id, name, ql, icon FROM aorefs WHERE id IN (" . implode(",", $aoids) . ")"
+			);
+			foreach ($refs as $ref) {
+				$resolved[(int) $ref[0]] = array('name' => $ref[1], 'ql' => (int) $ref[2], 'icon' => (int) $ref[3]);
+			}
+		}
+
+		$now = time();
+		if (empty($resolved)) {
+			$this->bot->db->query("UPDATE #___market_watch SET auto_tracked = 0 WHERE auto_tracked = 1");
+		} else {
+			$this->bot->db->query(
+				"UPDATE #___market_watch SET auto_tracked = 0 WHERE auto_tracked = 1 AND aoid NOT IN (" . implode(",", array_keys($resolved)) . ")"
+			);
+		}
+		foreach ($resolved as $aoid => $item) {
+			$name = $this->bot->db->real_escape_string($item['name']);
+			$this->bot->db->query(
+				"INSERT INTO #___market_watch (aoid, name, ql, icon, first_seen, last_polled, auto_tracked) VALUES ("
+					. $aoid . ", '" . $name . "', " . $item['ql'] . ", " . $item['icon'] . ", " . $now . ", 0, 1)"
+				. " ON DUPLICATE KEY UPDATE name = '" . $name . "', ql = " . $item['ql'] . ", icon = " . $item['icon'] . ", auto_tracked = 1"
+			);
+		}
+	}
+
+	function show_status()
+	{
+		$enabled = $this->bot->core("settings")->get("Market", "AutoTrackEnabled") ? "On" : "Off";
+		$out = "__________Market Tracking Settings_________\n";
+		$out .= "Auto-track          : " . $enabled . " (target " . $this->bot->core("settings")->get("Market", "AutoTrackCount") . " items,"
+			. " resync every " . $this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes") . " min)\n";
+		$out .= "Poll interval       : " . $this->bot->core("settings")->get("Market", "PollIntervalMinutes") . " min\n";
+		$out .= "History retention  : " . $this->bot->core("settings")->get("Market", "HistoryRetentionDays") . " days\n";
+		$out .= "\n";
+
+		$rows = $this->bot->db->select(
+			"SELECT aoid, name, ql, icon, auto_tracked, first_seen, last_polled FROM #___market_watch"
+			. " ORDER BY auto_tracked DESC, last_polled DESC LIMIT 500"
+		);
+		if (empty($rows)) {
+			$out .= "No items are currently tracked.\n";
+			return $this->bot->core("tools")->make_blob("Market Status", $out);
+		}
+
+		$now = time();
+		$inside = "";
+		foreach ($rows as $row) {
+			list($aoid, $name, $ql, $icon, $autoTracked, $firstSeen, $lastPolled) = $row;
+			$tag = $autoTracked ? "[Auto]" : "[Manual]";
+			$updated = ($lastPolled > 0)
+				? $this->bot->core("time")->format_seconds($now - $lastPolled) . " ago"
+				: "never polled yet";
+			$inside .= "<img src=rdb://" . $icon . "> <a href='itemref://" . $aoid . "/" . $aoid . "/" . $ql . "'>" . $name . "</a> QL" . $ql
+				. " " . $tag . " - last updated " . $updated . " ["
+				. $this->bot->core("tools")->chatcmd("market " . $aoid, "Overview") . "]\n";
+		}
+
+		$out .= count($rows) . " tracked item(s) :\n\n" . $inside;
+		return $this->bot->core("tools")->make_blob("Market Status", $out);
 	}
 }
 ?>
