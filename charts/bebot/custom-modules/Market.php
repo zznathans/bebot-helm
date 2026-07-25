@@ -118,6 +118,26 @@ class Market extends BaseActiveModule
 			);
 			$this->bot->db->set_version("market_watch", 2);
 		}
+		if ($this->bot->db->get_version("market_history") < 2) {
+			// avg_sell_price/avg_buy_price are anchored to the item's own QL from here on (a single
+			// AOID's live orders can span very different QLs, so a blended average across all of them
+			// is meaningless) - these counts record how many orders actually matched that QL each
+			// cycle, so history_average() can exclude snapshots with zero matches instead of letting
+			// them drag the trend toward 0.
+			$this->bot->db->update_table(
+				"market_history",
+				"anchor_sell_count",
+				"add",
+				"ALTER TABLE #___market_history ADD COLUMN anchor_sell_count INT NOT NULL DEFAULT 0"
+			);
+			$this->bot->db->update_table(
+				"market_history",
+				"anchor_buy_count",
+				"add",
+				"ALTER TABLE #___market_history ADD COLUMN anchor_buy_count INT NOT NULL DEFAULT 0"
+			);
+			$this->bot->db->set_version("market_history", 2);
+		}
 	}
 
 	function command_handler($name, $msg, $channel)
@@ -189,7 +209,9 @@ class Market extends BaseActiveModule
 		} else {
 			$inside .= $this->render_summary($orders);
 			$inside .= "\n";
-			$inside .= $this->render_history($id);
+			$inside .= $this->render_history($id, $ql);
+			$inside .= "\n";
+			$inside .= $this->render_ql_breakdown($orders);
 			$inside .= "\n";
 			$inside .= $this->render_orders($orders);
 		}
@@ -234,7 +256,7 @@ class Market extends BaseActiveModule
 		return $out;
 	}
 
-	function render_history($aoid)
+	function render_history($aoid, $anchorQl)
 	{
 		$now = time();
 		$recent = $this->history_average($aoid, $now - (7 * 86400), $now);
@@ -245,25 +267,53 @@ class Market extends BaseActiveModule
 		}
 
 		$out = "__________Price History (7 days)_________\n";
-		$out .= "Avg sell price : " . $this->format_credits($recent['avg_sell']) . $this->format_trend($recent['avg_sell'], $prior['avg_sell'] ?? null) . "\n";
-		$out .= "Avg buy price  : " . $this->format_credits($recent['avg_buy']) . $this->format_trend($recent['avg_buy'], $prior['avg_buy'] ?? null) . "\n";
+		$out .= "Avg sell price at QL" . $anchorQl . " : " . ($recent['avg_sell'] !== null
+			? $this->format_credits($recent['avg_sell']) . $this->format_trend($recent['avg_sell'], $prior['avg_sell'] ?? null)
+			: "no QL" . $anchorQl . " sell orders observed") . "\n";
+		$out .= "Avg buy price at QL" . $anchorQl . "  : " . ($recent['avg_buy'] !== null
+			? $this->format_credits($recent['avg_buy']) . $this->format_trend($recent['avg_buy'], $prior['avg_buy'] ?? null)
+			: "no QL" . $anchorQl . " buy orders observed") . "\n";
+
+		$range = $this->observed_range($aoid, $now - (7 * 86400), $now);
+		if ($range['min_sell'] !== null) {
+			$out .= "Lowest sell seen (any QL) : " . $this->format_credits($range['min_sell']) . "\n";
+		}
+		if ($range['max_buy'] !== null) {
+			$out .= "Highest buy seen (any QL): " . $this->format_credits($range['max_buy']) . "\n";
+		}
+
 		$out .= "Snapshots taken: " . $recent['count'] . "\n";
 		return $out;
 	}
 
+	/*
+	min_sell_price/max_buy_price already capture the all-QL extremes each snapshot (unlike
+	avg_sell_price/avg_buy_price, which are QL-anchored) - this just rolls them up over the window.
+	*/
+	function observed_range($aoid, $since, $until)
+	{
+		$base = " FROM #___market_history WHERE aoid = " . intval($aoid) . " AND ts >= " . intval($since) . " AND ts < " . intval($until);
+		$sell = $this->bot->db->select("SELECT MIN(min_sell_price)" . $base . " AND sell_count > 0");
+		$buy = $this->bot->db->select("SELECT MAX(max_buy_price)" . $base . " AND buy_count > 0");
+		return array(
+			'min_sell' => (!empty($sell) && $sell[0][0] !== null) ? (float) $sell[0][0] : null,
+			'max_buy' => (!empty($buy) && $buy[0][0] !== null) ? (float) $buy[0][0] : null
+		);
+	}
+
 	function history_average($aoid, $since, $until)
 	{
-		$result = $this->bot->db->select(
-			"SELECT AVG(avg_sell_price), AVG(avg_buy_price), COUNT(*) FROM #___market_history"
-			. " WHERE aoid = " . intval($aoid) . " AND ts >= " . intval($since) . " AND ts < " . intval($until)
-		);
-		if (empty($result) || $result[0][2] == 0) {
+		$base = " FROM #___market_history WHERE aoid = " . intval($aoid) . " AND ts >= " . intval($since) . " AND ts < " . intval($until);
+		$sell = $this->bot->db->select("SELECT AVG(avg_sell_price), COUNT(*)" . $base . " AND anchor_sell_count > 0");
+		$buy = $this->bot->db->select("SELECT AVG(avg_buy_price), COUNT(*)" . $base . " AND anchor_buy_count > 0");
+		$total = $this->bot->db->select("SELECT COUNT(*)" . $base);
+		if (empty($total) || $total[0][0] == 0) {
 			return null;
 		}
 		return array(
-			'avg_sell' => (float) $result[0][0],
-			'avg_buy' => (float) $result[0][1],
-			'count' => (int) $result[0][2]
+			'avg_sell' => (!empty($sell) && $sell[0][1] > 0) ? (float) $sell[0][0] : null,
+			'avg_buy' => (!empty($buy) && $buy[0][1] > 0) ? (float) $buy[0][0] : null,
+			'count' => (int) $total[0][0]
 		);
 	}
 
@@ -275,6 +325,59 @@ class Market extends BaseActiveModule
 		$change = (($current - $previous) / $previous) * 100;
 		$sign = $change >= 0 ? "+" : "";
 		return " (" . $sign . round($change, 1) . "% vs prior 7 days)";
+	}
+
+	/*
+	Live-only (not tracked historically): buckets the current orders into 50-QL bands and shows
+	avg price + price/QL per band, since a single AOID's orders can span very different QLs and
+	price rarely scales linearly across the whole range. A buy order's min_ql/max_ql range can span
+	multiple bands - it's counted in every band it touches, since it's a genuinely valid offer at
+	any QL in that range.
+	*/
+	function render_ql_breakdown($orders)
+	{
+		$bandSize = 50;
+		$buckets = array();
+
+		foreach ($orders->sell_orders as $sell) {
+			$band = (int) floor(($sell->ql - 1) / $bandSize);
+			if (!isset($buckets[$band])) {
+				$buckets[$band] = array('sell' => array(), 'buy' => array());
+			}
+			$buckets[$band]['sell'][] = $sell->price;
+		}
+		foreach ($orders->buy_orders as $buy) {
+			$lowBand = (int) floor(($buy->min_ql - 1) / $bandSize);
+			$highBand = (int) floor(($buy->max_ql - 1) / $bandSize);
+			for ($band = $lowBand; $band <= $highBand; $band++) {
+				if (!isset($buckets[$band])) {
+					$buckets[$band] = array('sell' => array(), 'buy' => array());
+				}
+				$buckets[$band]['buy'][] = $buy->price;
+			}
+		}
+
+		if (empty($buckets)) {
+			return "";
+		}
+		ksort($buckets);
+
+		$out = "__________Price by QL Band_________\n";
+		$out .= $this->tab("QL BAND", 10) . " " . $this->tab("AVG SELL", 12) . " " . $this->tab("AVG BUY", 12)
+			. " " . $this->tab("SELL/QL", 10) . " " . $this->tab("BUY/QL", 10) . "\n";
+		foreach ($buckets as $band => $data) {
+			$lowQl = $band * $bandSize + 1;
+			$highQl = $lowQl + $bandSize - 1;
+			$midQl = ($lowQl + $highQl) / 2;
+			$avgSell = !empty($data['sell']) ? array_sum($data['sell']) / count($data['sell']) : null;
+			$avgBuy = !empty($data['buy']) ? array_sum($data['buy']) / count($data['buy']) : null;
+			$out .= $this->tab("QL" . $lowQl . "-" . $highQl, 10) . " "
+				. $this->tab($avgSell !== null ? $this->format_credits($avgSell) : "-", 12) . " "
+				. $this->tab($avgBuy !== null ? $this->format_credits($avgBuy) : "-", 12) . " "
+				. $this->tab($avgSell !== null ? $this->format_credits($avgSell / $midQl) : "-", 10) . " "
+				. $this->tab($avgBuy !== null ? $this->format_credits($avgBuy / $midQl) : "-", 10) . "\n";
+		}
+		return $out;
 	}
 
 	function render_orders($orders)
@@ -415,45 +518,66 @@ class Market extends BaseActiveModule
 
 		// Re-poll the items most overdue for a refresh.
 		$due = $this->bot->db->select(
-			"SELECT aoid FROM #___market_watch WHERE last_polled < " . ($now - $intervalSeconds)
+			"SELECT aoid, ql FROM #___market_watch WHERE last_polled < " . ($now - $intervalSeconds)
 			. " ORDER BY last_polled ASC LIMIT " . $batchSize
 		);
 		foreach ($due as $row) {
 			$aoid = intval($row[0]);
+			$anchorQl = intval($row[1]);
 			$orders = $this->fetch_orders($aoid);
 			if ($orders !== false) {
-				$this->snapshot($aoid, $orders);
+				$this->snapshot($aoid, $orders, $anchorQl);
 			}
 			$this->bot->db->query("UPDATE #___market_watch SET last_polled = " . $now . " WHERE aoid = " . $aoid);
 		}
 	}
 
-	function snapshot($aoid, $orders)
+	/*
+	sell_count/buy_count/min_sell_price/max_buy_price cover ALL orders regardless of QL - that's
+	the correct "observed range" data. avg_sell_price/avg_buy_price are anchored to $anchorQl (the
+	item's own QL) since a single AOID's orders can span wildly different QLs and a blended average
+	across all of them is meaningless. anchor_*_count records how many orders matched that QL this
+	cycle, so a cycle with zero matches doesn't get treated as a real price of 0 downstream.
+	*/
+	function snapshot($aoid, $orders, $anchorQl)
 	{
 		$sellCount = count($orders->sell_orders);
 		$buyCount = count($orders->buy_orders);
 		$minSell = 0;
-		$avgSell = 0;
 		if ($sellCount > 0) {
 			$prices = array_map(function ($o) {
 				return $o->price;
 			}, $orders->sell_orders);
 			$minSell = min($prices);
-			$avgSell = array_sum($prices) / $sellCount;
 		}
 		$maxBuy = 0;
-		$avgBuy = 0;
 		if ($buyCount > 0) {
 			$prices = array_map(function ($o) {
 				return $o->price;
 			}, $orders->buy_orders);
 			$maxBuy = max($prices);
-			$avgBuy = array_sum($prices) / $buyCount;
 		}
+
+		$anchorSellPrices = array_map(function ($o) {
+			return $o->price;
+		}, array_filter($orders->sell_orders, function ($o) use ($anchorQl) {
+			return $o->ql == $anchorQl;
+		}));
+		$anchorBuyPrices = array_map(function ($o) {
+			return $o->price;
+		}, array_filter($orders->buy_orders, function ($o) use ($anchorQl) {
+			return $o->min_ql <= $anchorQl && $anchorQl <= $o->max_ql;
+		}));
+		$anchorSellCount = count($anchorSellPrices);
+		$anchorBuyCount = count($anchorBuyPrices);
+		$avgSell = $anchorSellCount > 0 ? array_sum($anchorSellPrices) / $anchorSellCount : 0;
+		$avgBuy = $anchorBuyCount > 0 ? array_sum($anchorBuyPrices) / $anchorBuyCount : 0;
+
 		$this->bot->db->query(
-			"INSERT INTO #___market_history (aoid, ts, sell_count, buy_count, min_sell_price, max_buy_price, avg_sell_price, avg_buy_price) VALUES ("
+			"INSERT INTO #___market_history (aoid, ts, sell_count, buy_count, min_sell_price, max_buy_price, avg_sell_price, avg_buy_price, anchor_sell_count, anchor_buy_count) VALUES ("
 				. intval($aoid) . ", " . time() . ", " . $sellCount . ", " . $buyCount . ", "
-				. intval($minSell) . ", " . intval($maxBuy) . ", " . intval($avgSell) . ", " . intval($avgBuy) . ")"
+				. intval($minSell) . ", " . intval($maxBuy) . ", " . intval($avgSell) . ", " . intval($avgBuy) . ", "
+				. $anchorSellCount . ", " . $anchorBuyCount . ")"
 		);
 	}
 
