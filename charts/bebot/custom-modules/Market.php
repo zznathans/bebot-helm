@@ -41,6 +41,8 @@ class Market extends BaseActiveModule
 			->create("Market", "AutoTrackIntervalMinutes", 60, "How often (in minutes) should the auto-tracked item list be resynced from ao-stonks.com ?");
 		$this->bot->core("settings")
 			->create("Market", "AutoTrackSourceUrl", "https://ao-stonks.com", "What site should be used to determine the most actively-traded items ?");
+		$this->bot->core("settings")
+			->create("Market", "AutoTrackLastSync", 0, "Internal: unix timestamp of the last successful auto-track resync - do not set manually");
 
 		$this->table();
 
@@ -63,6 +65,17 @@ class Market extends BaseActiveModule
 				$autoInterval = 60;
 			}
 			$this->bot->core("timer")->add_timer(true, "Market", $autoInterval, "Market-AutoTrack", "internal", $autoInterval, "None");
+		}
+
+		// Catch up immediately on startup if the auto-tracked list is staler than the configured
+		// resync interval (e.g. the bot was down/redeployed past when the timer would have fired),
+		// rather than waiting for the next scheduled tick.
+		if ($this->bot->core("settings")->get("Market", "AutoTrackEnabled")) {
+			$autoIntervalSeconds = 60 * intval($this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes"));
+			$lastSync = intval($this->bot->core("settings")->get("Market", "AutoTrackLastSync"));
+			if ((time() - $lastSync) >= $autoIntervalSeconds) {
+				$this->sync_top_traded_items();
+			}
 		}
 	}
 
@@ -520,14 +533,18 @@ class Market extends BaseActiveModule
 				. " ON DUPLICATE KEY UPDATE name = '" . $name . "', ql = " . $item['ql'] . ", icon = " . $item['icon'] . ", auto_tracked = 1"
 			);
 		}
+
+		$this->bot->core("settings")->save("Market", "AutoTrackLastSync", $now);
 	}
 
 	function show_status()
 	{
 		$enabled = $this->bot->core("settings")->get("Market", "AutoTrackEnabled") ? "On" : "Off";
+		$lastSync = intval($this->bot->core("settings")->get("Market", "AutoTrackLastSync"));
+		$lastSyncText = ($lastSync > 0) ? $this->bot->core("time")->format_seconds(time() - $lastSync) . " ago" : "never";
 		$out = "__________Market Tracking Settings_________\n";
 		$out .= "Auto-track          : " . $enabled . " (target " . $this->bot->core("settings")->get("Market", "AutoTrackCount") . " items,"
-			. " resync every " . $this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes") . " min)\n";
+			. " resync every " . $this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes") . " min, last resync " . $lastSyncText . ")\n";
 		$out .= "Poll interval       : " . $this->bot->core("settings")->get("Market", "PollIntervalMinutes") . " min\n";
 		$out .= "History retention  : " . $this->bot->core("settings")->get("Market", "HistoryRetentionDays") . " days\n";
 		$out .= "\n";
