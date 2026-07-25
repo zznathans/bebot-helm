@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/zznathans/bebot-helm/compare/2.7.1...2.8.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** resync auto-tracked items on startup if stale ([bcf8243](https://github.com/zznathans/bebot-helm/commit/bcf824304172d796de0f63154001b06a69489baa))
+
 ## [2.7.1](https://github.com/zznathans/bebot-helm/compare/2.7.0...2.7.1) (2026-07-25)
 
 
