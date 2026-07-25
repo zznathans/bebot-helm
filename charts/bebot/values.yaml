@@ -127,6 +127,9 @@ bebot:
       botOwner: "OwnerCharacter"    # AO character name of the bot owner (highest privilege).
       superAdmins:                  # List of AO character names granted super-admin access to the bot.
         - "AdminCharacter"
+      log: "chat"                   # Logging level for the daily flat-text log files: all/chat/off. "chat" only writes GROUP/TELL/PGRP-tagged log calls (most module activity logging, e.g. Market's, is tagged otherwise and needs "all" to reach the log files). Console output and !log <category> (for calls made with write_to_db) are unaffected by this setting.
+      logPath: "./log"              # Relative/absolute path for the daily flat-text log files.
+      logTimestamp: "none"          # Timestamp prefix on log lines: datetime/date/time/none.
       # Controls how this instance's bot config secret is managed.
       # When true or unset: a K8s Secret is created directly by Helm using the values above (mariadbUser,
       #   mariadbPassword, mariadbDatabase, ao_password must be set in values).
