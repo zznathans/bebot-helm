@@ -1,3 +1,10 @@
+## [2.8.1](https://github.com/zznathans/bebot-helm/compare/2.8.0...2.8.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **bot:** stop blending prices across wildly different QLs ([0dbf826](https://github.com/zznathans/bebot-helm/commit/0dbf826fe4e8d4e1d1531f9b55b63a1048b24053))
+
 # [2.8.0](https://github.com/zznathans/bebot-helm/compare/2.7.1...2.8.0) (2026-07-25)
 
 
