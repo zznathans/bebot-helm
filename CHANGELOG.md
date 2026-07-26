@@ -1,3 +1,10 @@
+# [2.18.0](https://github.com/zznathans/bebot-helm/compare/2.17.0...2.18.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** add !market watchlist to list a player's subscriptions ([b206f75](https://github.com/zznathans/bebot-helm/commit/b206f757c6cad74143bb5bc9415fa119944722a4))
+
 # [2.17.0](https://github.com/zznathans/bebot-helm/compare/2.16.0...2.17.0) (2026-07-26)
 
 
