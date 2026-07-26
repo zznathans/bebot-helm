@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/zznathans/bebot-helm/compare/2.11.0...2.12.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** add !market help pages ([3f13651](https://github.com/zznathans/bebot-helm/commit/3f13651bfcce69a92d02c375c75c00b24aef2484))
+
 # [2.11.0](https://github.com/zznathans/bebot-helm/compare/2.10.0...2.11.0) (2026-07-26)
 
 
