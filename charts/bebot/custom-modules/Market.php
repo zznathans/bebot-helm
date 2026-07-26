@@ -22,10 +22,12 @@ class Market extends BaseActiveModule
 		$this->help['command']['market <item name>'] = "Search for an item by (partial) name";
 		$this->help['command']['market <aoid>'] = "Show the full market overview for a specific item ID";
 		$this->help['command']['market status'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
-		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires being a registered bot user - see !adduser)";
+		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires !market register first)";
 		$this->help['command']['market unwatch <aoid>'] = "Stop watching an item";
 		$this->help['command']['market user stats'] = "Show your own Market usage stats (ADMIN+ can pass a player name to check anyone)";
 		$this->help['command']['market help'] = "Show the Market module's in-game help pages";
+		$this->help['command']['market register'] = "Opt into Market notifications and set up your own watchlist";
+		$this->help['command']['market unregister'] = "Erase your registration, watchlist, and any queued notifications";
 
 		$this->bot->core("settings")
 			->create("Market", "Enabled", false, "Should the Market module respond to commands and track prices at all ?", "On;Off");
@@ -193,6 +195,14 @@ class Market extends BaseActiveModule
 					created_at INT NOT NULL,
 					INDEX market_user_actions_player_ts (player, created_at))"
 		);
+		// Market's own self-service user list - independent of Core/User.php's #___users (which is
+		// admin-gated via !adduser). Registering here is what !market watch actually requires; there's
+		// deliberately no dependency on the bot's core user table at all.
+		$this->bot->db->query(
+			"CREATE TABLE IF NOT EXISTS " . $this->bot->db->define_tablename("market_users", "false") . "
+				(player VARCHAR(30) NOT NULL PRIMARY KEY,
+					registered_at INT NOT NULL)"
+		);
 		if (!$this->bot->db->get_version("market_subscriptions")) {
 			$this->bot->db->set_version("market_subscriptions", 1);
 		}
@@ -205,6 +215,9 @@ class Market extends BaseActiveModule
 		if (!$this->bot->db->get_version("market_user_actions")) {
 			$this->bot->db->set_version("market_user_actions", 1);
 		}
+		if (!$this->bot->db->get_version("market_users")) {
+			$this->bot->db->set_version("market_users", 1);
+		}
 	}
 
 	function command_handler($name, $msg, $channel)
@@ -212,7 +225,11 @@ class Market extends BaseActiveModule
 		if (!$this->bot->core("settings")->get("Market", "Enabled")) {
 			return "The Market module is currently disabled. Ask an admin to turn it on via the bot's settings command (Market.Enabled).";
 		}
-		if (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
+		if (preg_match('/^(?:market|mkt)\s+register\s*$/i', $msg)) {
+			return $this->cmd_register($name);
+		} elseif (preg_match('/^(?:market|mkt)\s+unregister\s*$/i', $msg)) {
+			return $this->cmd_unregister($name);
+		} elseif (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
 			$this->log_action($name, "help");
 			return $this->show_help(trim($info[1]));
 		} elseif (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
@@ -236,13 +253,77 @@ class Market extends BaseActiveModule
 			$this->log_action($name, "search");
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market watch <item>  or  market unwatch <aoid>  or  market user stats  or  market help";
+			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market register  or  market watch <item>  or  market unwatch <aoid>  or  market user stats  or  market help";
 		}
 	}
 
+	/*
+	Market's own registration (market_users), not Core/User.php's #___users - see cmd_register()
+	below and the table() comment on market_users for why these are kept independent.
+	*/
 	function is_registered($name)
 	{
-		return $this->bot->core("user")->get_db_uid($name) > 0;
+		$result = $this->bot->db->select(
+			"SELECT 1 FROM #___market_users WHERE player = '" . $this->bot->db->real_escape_string($name) . "'"
+		);
+		return !empty($result);
+	}
+
+	/*
+	Self-service opt-in: anyone (GUEST) can register, no admin action required. Also flips the
+	shared notify flag (Main/15_Notify.php) so the bot tracks their online status for immediate
+	tell delivery - see notify_subscribers()/notify() - and sends back an info blob explaining the
+	service, same as every other Market reply.
+	*/
+	function cmd_register($name)
+	{
+		if ($this->is_registered($name)) {
+			return "You're already registered. Try " . $this->bot->core("tools")->chatcmd("market help watch", "market help watch") . " for how to build a watchlist.";
+		}
+
+		$nameEsc = $this->bot->db->real_escape_string($name);
+		$this->bot->db->query(
+			"INSERT INTO #___market_users (player, registered_at) VALUES ('" . $nameEsc . "', " . time() . ")"
+		);
+		$this->bot->core("notify")->add($name, $name);
+		$this->log_action($name, "register");
+
+		$tools = $this->bot->core("tools");
+		$limit = $this->bot->core("settings")->get("Market", "MaxSubscriptionsPerPlayer");
+		$out = "You're registered with the Market module.\n\n";
+		$out .= "This lets you build a personal watchlist - " . $tools->chatcmd("market watch <item>", "market watch <item>")
+			. " adds an item, and you'll get a tell as soon as a new order is posted for it (immediately if you're\n";
+		$out .= "online, or the next time you log on if you weren't). Capped at " . $limit . " item(s) at once; "
+			. $tools->chatcmd("market unwatch <aoid>", "market unwatch <aoid>") . " removes one.\n\n";
+		$out .= "If you ever want out: " . $tools->chatcmd("market unregister", "market unregister")
+			. " erases your registration, your whole watchlist, and any notifications waiting for you -\n";
+		$out .= "it doesn't touch item price history, which isn't tied to any one player.\n";
+		return $tools->make_blob("Welcome to Market", $out);
+	}
+
+	/*
+	Erases everything this player opted into (registration, watchlist, queued tells) and turns
+	off the shared notify flag - but never touches market_user_actions (their usage-stats ledger
+	is a separate, non-notification concept and survives unregistering) or any item-level price
+	history/tracking, which isn't player-specific to begin with.
+	*/
+	function cmd_unregister($name)
+	{
+		if (!$this->is_registered($name)) {
+			return "You're not registered, so there's nothing to erase.";
+		}
+
+		$nameEsc = $this->bot->db->real_escape_string($name);
+		$subCount = $this->bot->db->select("SELECT COUNT(*) FROM #___market_subscriptions WHERE player = '" . $nameEsc . "'");
+		$watchCount = !empty($subCount) ? (int) $subCount[0][0] : 0;
+
+		$this->bot->db->query("DELETE FROM #___market_subscriptions WHERE player = '" . $nameEsc . "'");
+		$this->bot->db->query("DELETE FROM #___market_pending_alerts WHERE player = '" . $nameEsc . "'");
+		$this->bot->db->query("DELETE FROM #___market_users WHERE player = '" . $nameEsc . "'");
+		$this->bot->core("notify")->del($name);
+		$this->log_action($name, "unregister");
+
+		return "Unregistered. Removed " . $watchCount . " watchlist item(s) and any pending notifications. Your usage stats (market user stats) are unaffected.";
 	}
 
 	function log_action($player, $action, $aoid = null)
@@ -263,6 +344,9 @@ class Market extends BaseActiveModule
 	function show_help($topic = "")
 	{
 		switch (strtolower($topic)) {
+			case "register":
+			case "registering":
+				return $this->help_register();
 			case "search":
 			case "overview":
 				return $this->help_search();
@@ -288,6 +372,7 @@ class Market extends BaseActiveModule
 	{
 		$tools = $this->bot->core("tools");
 		$out = "Search GMI prices, track history, build a personal watchlist, and get alerted when new orders show up.\n\n";
+		$out .= "[" . $tools->chatcmd("market help register", "Registering") . "] - opt in/out of Market notifications\n";
 		$out .= "[" . $tools->chatcmd("market help search", "Searching & Item Overview") . "] - find items and read their price/QL breakdown\n";
 		$out .= "[" . $tools->chatcmd("market help watch", "Watchlist & Alerts") . "] - get a tell when a new order is posted\n";
 		$out .= "[" . $tools->chatcmd("market help status", "Tracking Status") . "] - see everything currently being tracked\n";
@@ -314,6 +399,22 @@ class Market extends BaseActiveModule
 		return $tools->make_blob("Market Help: Searching & Overview", $out);
 	}
 
+	function help_register()
+	{
+		$tools = $this->bot->core("tools");
+		$out = "__________Registering_________\n\n";
+		$out .= "market register\n";
+		$out .= "  Opt into Market notifications - anyone can run this, no admin action needed. Sends you\n";
+		$out .= "  an info window and lets the bot know to track your online status, so watchlist alerts\n";
+		$out .= "  can reach you immediately when you're online.\n\n";
+		$out .= "market unregister\n";
+		$out .= "  Erases your registration, your entire watchlist, and any notifications waiting for you.\n";
+		$out .= "  Doesn't affect item price history (that's not tied to any one player) or your\n";
+		$out .= "  " . $tools->chatcmd("market help stats", "usage stats") . ", which are a separate thing.\n\n";
+		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Registering", $out);
+	}
+
 	function help_watch()
 	{
 		$tools = $this->bot->core("tools");
@@ -322,7 +423,7 @@ class Market extends BaseActiveModule
 		$out .= "market watch <item name or aoid>\n";
 		$out .= "  Add an item to your personal watchlist. You'll get a tell as soon as a new order is\n";
 		$out .= "  posted for it - immediately if you're online, or the next time you log on if you weren't.\n";
-		$out .= "  Requires being a registered user of this bot - ask an admin to !adduser you first.\n";
+		$out .= "  Requires " . $tools->chatcmd("market register", "registering") . " first.\n";
 		$out .= "  Capped at " . $limit . " item(s) per player (admin-configurable).\n\n";
 		$out .= "market unwatch <aoid>\n";
 		$out .= "  Stop watching an item. Doesn't affect anyone else still watching it.\n\n";
@@ -467,8 +568,7 @@ class Market extends BaseActiveModule
 	/*
 	Personal watchlist subscription (distinct from watch() above, which just controls whether the
 	bot polls an item at all - this is "does this specific player want a tell about it"). Requires
-	being a known bot user (added via !adduser) since this is the gate the rest of the codebase
-	already uses for "is this a registered player" - there's no separate self-service registration.
+	having run !market register first (Market's own self-service opt-in, see cmd_register()).
 	*/
 	function cmd_watch($name, $aoid)
 	{
@@ -480,7 +580,7 @@ class Market extends BaseActiveModule
 
 		if (!$this->is_registered($name)) {
 			$this->log_action($name, "watch_denied", $id);
-			return "You need to be a registered user of this bot first - ask an admin to add you with !adduser.";
+			return "You need to register first - try " . $this->bot->core("tools")->chatcmd("market register", "market register") . ".";
 		}
 
 		$nameEsc = $this->bot->db->real_escape_string($name);
@@ -504,7 +604,6 @@ class Market extends BaseActiveModule
 				. $nameEsc . "', " . $id . ", 'any', " . time() . ")"
 		);
 		$this->watch($id, $itemName, $ql, $icon);
-		$this->bot->core("notify")->add($name, $name);
 		$this->log_action($name, "watch", $id);
 
 		return "You're now watching " . $itemName . " (QL" . $ql . ") - you'll get a tell when a new order shows up.";
