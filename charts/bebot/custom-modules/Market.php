@@ -16,7 +16,22 @@ class Market extends BaseActiveModule
 	function __construct(&$bot)
 	{
 		parent::__construct($bot, get_class($this));
-		$this->register_command("all", "market", "GUEST");
+		// Per-subcommand access levels (matching the second word of the message, e.g. "market
+		// watch" -> "watch") - an admin can retune any of these independently at runtime via
+		// "commands update all market <subcommand> <LEVEL>", no code change needed. Only reaches
+		// this granularity though: it can't tell "market help settings" apart from "market help
+		// search" (both are subcommand "help") - that finer split is an inline check in
+		// help_settings() instead. Free-text searches/AOIDs (arbitrary second words) fall through
+		// to the command's own GUEST default below, not any of these entries.
+		$this->register_command("all", "market", "GUEST", array(
+			"register" => "GUEST",
+			"unregister" => "GUEST",
+			"watch" => "GUEST",
+			"unwatch" => "GUEST",
+			"status" => "GUEST",
+			"help" => "GUEST",
+			"user" => "GUEST"
+		));
 		$this->register_alias("market", "mkt");
 		$this->help['description'] = "Market overview: search for an item and see a summary, price history and live orders.";
 		$this->help['command']['market <item name>'] = "Search for an item by (partial) name";
@@ -231,7 +246,7 @@ class Market extends BaseActiveModule
 			return $this->cmd_unregister($name);
 		} elseif (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
 			$this->log_action($name, "help");
-			return $this->show_help(trim($info[1]));
+			return $this->show_help($name, trim($info[1]));
 		} elseif (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
 			$this->log_action($name, "status");
 			return $this->show_status();
@@ -341,7 +356,7 @@ class Market extends BaseActiveModule
 	!market help [topic] - a landing page linking out to one blob per topic, same
 	menu-of-linked-blobs pattern Modules/AccessControlUi.php uses for its `commands` command.
 	*/
-	function show_help($topic = "")
+	function show_help($name, $topic = "")
 	{
 		switch (strtolower($topic)) {
 			case "register":
@@ -362,13 +377,13 @@ class Market extends BaseActiveModule
 				return $this->help_stats();
 			case "settings":
 			case "admin":
-				return $this->help_settings();
+				return $this->help_settings($name);
 			default:
-				return $this->help_landing();
+				return $this->help_landing($name);
 		}
 	}
 
-	function help_landing()
+	function help_landing($name)
 	{
 		$tools = $this->bot->core("tools");
 		$out = "Search GMI prices, track history, build a personal watchlist, and get alerted when new orders show up.\n\n";
@@ -377,7 +392,9 @@ class Market extends BaseActiveModule
 		$out .= "[" . $tools->chatcmd("market help watch", "Watchlist & Alerts") . "] - get a tell when a new order is posted\n";
 		$out .= "[" . $tools->chatcmd("market help status", "Tracking Status") . "] - see everything currently being tracked\n";
 		$out .= "[" . $tools->chatcmd("market help stats", "Your Stats") . "] - your own usage history\n";
-		$out .= "[" . $tools->chatcmd("market help settings", "Settings") . "] - every bot setting this module exposes\n";
+		if ($this->bot->core("security")->check_access($name, "ADMIN")) {
+			$out .= "[" . $tools->chatcmd("market help settings", "Settings") . "] - every bot setting this module exposes\n";
+		}
 		return $tools->make_blob("Market Help", $out);
 	}
 
@@ -461,8 +478,16 @@ class Market extends BaseActiveModule
 		return $tools->make_blob("Market Help: Your Stats", $out);
 	}
 
-	function help_settings()
+	/*
+	Gated inline rather than via register_command()'s subcommand levels, since the framework's
+	subcommand matching only sees the second word of the message ("help") and can't distinguish
+	"market help settings" from "market help search" - both are subcommand "help" to it.
+	*/
+	function help_settings($name)
 	{
+		if (!$this->bot->core("security")->check_access($name, "ADMIN")) {
+			return "Only ADMIN+ can view Market settings. Try " . $this->bot->core("tools")->chatcmd("market help", "market help") . " for other topics.";
+		}
 		$tools = $this->bot->core("tools");
 		$settings = $this->bot->core("settings");
 		$rows = array(
