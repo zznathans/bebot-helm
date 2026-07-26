@@ -28,6 +28,8 @@ class Market extends BaseActiveModule
 		$this->help['command']['market help'] = "Show the Market module's in-game help pages";
 
 		$this->bot->core("settings")
+			->create("Market", "Enabled", false, "Should the Market module respond to commands and track prices at all ?", "On;Off");
+		$this->bot->core("settings")
 			->create("Market", "ApiUrl", "https://gmi.nadybot.org", "What's the GMI search API URL we should use (Nadybot's by default) ?");
 		$this->bot->core("settings")
 			->create("Market", "PollIntervalMinutes", 30, "How often (in minutes) should watched items be re-polled to build price history ?");
@@ -79,7 +81,7 @@ class Market extends BaseActiveModule
 		// Catch up immediately on startup if the auto-tracked list is staler than the configured
 		// resync interval (e.g. the bot was down/redeployed past when the timer would have fired),
 		// rather than waiting for the next scheduled tick.
-		if ($this->bot->core("settings")->get("Market", "AutoTrackEnabled")) {
+		if ($this->bot->core("settings")->get("Market", "Enabled") && $this->bot->core("settings")->get("Market", "AutoTrackEnabled")) {
 			$autoIntervalSeconds = 60 * intval($this->bot->core("settings")->get("Market", "AutoTrackIntervalMinutes"));
 			$lastSync = intval($this->bot->core("settings")->get("Market", "AutoTrackLastSync"));
 			if ((time() - $lastSync) >= $autoIntervalSeconds) {
@@ -207,6 +209,9 @@ class Market extends BaseActiveModule
 
 	function command_handler($name, $msg, $channel)
 	{
+		if (!$this->bot->core("settings")->get("Market", "Enabled")) {
+			return "The Market module is currently disabled. Ask an admin to turn it on via the bot's settings command (Market.Enabled).";
+		}
 		if (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
 			$this->log_action($name, "help");
 			return $this->show_help(trim($info[1]));
@@ -360,6 +365,7 @@ class Market extends BaseActiveModule
 		$tools = $this->bot->core("tools");
 		$settings = $this->bot->core("settings");
 		$rows = array(
+			array("Market.Enabled", "Whether the module responds to commands and tracks prices at all"),
 			array("Market.ApiUrl", "GMI search API URL"),
 			array("Market.PollIntervalMinutes", "How often watched items are re-polled to build price history"),
 			array("Market.HistoryRetentionDays", "How many days of price history are kept per item"),
@@ -815,6 +821,9 @@ class Market extends BaseActiveModule
 	*/
 	function timer($name, $prefix, $suffix, $delay)
 	{
+		if (!$this->bot->core("settings")->get("Market", "Enabled")) {
+			return;
+		}
 		if ($name == "Market-Poll") {
 			$this->poll_market();
 		} elseif ($name == "Market-AutoTrack") {
