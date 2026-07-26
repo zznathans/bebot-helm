@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/zznathans/bebot-helm/compare/2.10.0...2.11.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** watchlist subscriptions, order-alert tells, and user stats ([6ac549a](https://github.com/zznathans/bebot-helm/commit/6ac549a8f28974d9d9fa3fb0f87ce5a07144b0f4))
+
 # [2.10.0](https://github.com/zznathans/bebot-helm/compare/2.9.0...2.10.0) (2026-07-26)
 
 
