@@ -229,6 +229,18 @@ class Market extends BaseActiveModule
 		if (!$this->bot->db->get_version("market_pending_alerts")) {
 			$this->bot->db->set_version("market_pending_alerts", 1);
 		}
+		if ($this->bot->db->get_version("market_pending_alerts") < 2) {
+			// notify_subscribers() now wraps its message in make_blob() (a bare chatcmd() link
+			// doesn't render as clickable sent directly as a tell) - the header/chrome that wraps
+			// adds enough overhead to exceed the original VARCHAR(500).
+			$this->bot->db->update_table(
+				"market_pending_alerts",
+				"message",
+				"modify",
+				"ALTER TABLE #___market_pending_alerts MODIFY COLUMN message TEXT NOT NULL"
+			);
+			$this->bot->db->set_version("market_pending_alerts", 2);
+		}
 		if (!$this->bot->db->get_version("market_user_actions")) {
 			$this->bot->db->set_version("market_user_actions", 1);
 		}
@@ -1099,8 +1111,13 @@ class Market extends BaseActiveModule
 		if (empty($subs)) {
 			return;
 		}
-		$message = $newOrderCount . " new order(s) posted for " . $itemName . " ["
-			. $this->bot->core("tools")->chatcmd("market " . $aoid, "View") . "]";
+		// A bare chatcmd() link sent directly as a tell does NOT render as clickable - every
+		// working example elsewhere in the codebase (Modules/Raffle.php's click_join(),
+		// Modules/AltsUi.php's alt confirmation tell) wraps it in make_blob() first.
+		$tools = $this->bot->core("tools");
+		$inside = $newOrderCount . " new order(s) posted for " . $itemName . ".\n\n["
+			. $tools->chatcmd("market " . $aoid, "View Overview") . "]";
+		$message = $tools->make_blob($itemName . " - New Order(s)", $inside);
 
 		foreach ($subs as $row) {
 			$player = $row[0];
