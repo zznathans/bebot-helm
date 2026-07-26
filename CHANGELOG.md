@@ -1,3 +1,10 @@
+## [2.18.2](https://github.com/zznathans/bebot-helm/compare/2.18.1...2.18.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* **bot:** suppress E_DEPRECATED so curl_close() noise stops logging ([261f77c](https://github.com/zznathans/bebot-helm/commit/261f77c23ffeae11967ef1fb495acf7adc1e4ab8))
+
 ## [2.18.1](https://github.com/zznathans/bebot-helm/compare/2.18.0...2.18.1) (2026-07-26)
 
 
