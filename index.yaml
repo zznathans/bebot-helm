@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   bebot:
   - apiVersion: v2
+    appVersion: 2.16.0
+    created: "2026-07-26T08:26:38.505648302Z"
+    description: Helm chart for bebot
+    digest: 259cb2d905a0788d0e3579316e07a6635065f01474868580d0c4bc71322d61dc
+    name: bebot
+    type: application
+    urls:
+    - https://github.com/zznathans/bebot-helm/releases/download/bebot-2.16.0/bebot-2.16.0.tgz
+    version: 2.16.0
+  - apiVersion: v2
     appVersion: 2.15.0
     created: "2026-07-26T08:17:27.561291844Z"
     description: Helm chart for bebot
@@ -571,4 +581,4 @@ entries:
     urls:
     - https://github.com/zznathans/bebot-helm/releases/download/bebot-1.0.2/bebot-1.0.2.tgz
     version: 1.0.2
-generated: "2026-07-26T08:17:27.561573191Z"
+generated: "2026-07-26T08:26:38.505826628Z"
