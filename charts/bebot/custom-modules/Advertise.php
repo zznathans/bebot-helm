@@ -97,6 +97,11 @@ class Advertise extends BaseActiveModule
 	/*
 	Same custom-text-file fallback order as Modules/Ao/Recruit.php's cron(), so an operator can
 	customize the copy without touching code: a bot-specific override first, then a shared one.
+
+	A bare chatcmd() link posted directly to a channel/tell does NOT render as clickable - every
+	working example in the codebase (Modules/Raffle.php's click_join(), Modules/AltsUi.php's alt
+	confirmation tell) always wraps it in make_blob() first. The visible teaser text goes to the
+	channel; the actual clickable "market help" link only becomes real once someone opens the blob.
 	*/
 	function message()
 	{
@@ -106,8 +111,10 @@ class Advertise extends BaseActiveModule
 		if (file_exists("./Text/Advertise.txt")) {
 			return implode("", file("./Text/Advertise.txt"));
 		}
-		return $this->bot->botname . " now tracks GMI prices and can alert you to new orders - try ["
-			. $this->bot->core("tools")->chatcmd("market help", "market help") . "] to get started!";
+		$tools = $this->bot->core("tools");
+		$inside = $this->bot->botname . " tracks GMI prices and can alert you to new orders.\n\n"
+			. "[" . $tools->chatcmd("market help", "market help") . "]";
+		return $this->bot->botname . " - " . $tools->make_blob("click for details", $inside);
 	}
 }
 ?>
