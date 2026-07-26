@@ -29,6 +29,7 @@ class Market extends BaseActiveModule
 			"watch" => "GUEST",
 			"unwatch" => "GUEST",
 			"status" => "GUEST",
+			"watchlist" => "GUEST",
 			"help" => "GUEST",
 			"user" => "GUEST"
 		));
@@ -39,6 +40,7 @@ class Market extends BaseActiveModule
 		$this->help['command']['market status'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
 		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires !market register first)";
 		$this->help['command']['market unwatch <aoid>'] = "Stop watching an item";
+		$this->help['command']['market watchlist'] = "List everything on your personal watchlist";
 		$this->help['command']['market user stats'] = "Show your own Market usage stats (ADMIN+ can pass a player name to check anyone)";
 		$this->help['command']['market help'] = "Show the Market module's in-game help pages";
 		$this->help['command']['market register'] = "Opt into Market notifications and set up your own watchlist";
@@ -250,6 +252,9 @@ class Market extends BaseActiveModule
 		} elseif (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
 			$this->log_action($name, "status");
 			return $this->show_status();
+		} elseif (preg_match('/^(?:market|mkt)\s+watchlist\s*$/i', $msg)) {
+			$this->log_action($name, "watchlist");
+			return $this->show_watchlist($name);
 		} elseif (preg_match('/^(?:market|mkt)\s+user\s+stats\s*(.*)$/i', $msg, $info)) {
 			$target = trim($info[1]);
 			$this->log_action($name, "userstats");
@@ -268,7 +273,7 @@ class Market extends BaseActiveModule
 			$this->log_action($name, "search");
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market register  or  market watch <item>  or  market unwatch <aoid>  or  market user stats  or  market help";
+			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market register  or  market watch <item>  or  market unwatch <aoid>  or  market watchlist  or  market user stats  or  market help";
 		}
 	}
 
@@ -309,7 +314,8 @@ class Market extends BaseActiveModule
 		$out .= "This lets you build a personal watchlist - " . $tools->chatcmd("market watch <item>", "market watch <item>")
 			. " adds an item, and you'll get a tell as soon as a new order is posted for it (immediately if you're\n";
 		$out .= "online, or the next time you log on if you weren't). Capped at " . $limit . " item(s) at once; "
-			. $tools->chatcmd("market unwatch <aoid>", "market unwatch <aoid>") . " removes one.\n\n";
+			. $tools->chatcmd("market unwatch <aoid>", "market unwatch <aoid>") . " removes one, and "
+			. $tools->chatcmd("market watchlist", "market watchlist") . " lists what you're currently watching.\n\n";
 		$out .= "If you ever want out: " . $tools->chatcmd("market unregister", "market unregister")
 			. " erases your registration, your whole watchlist, and any notifications waiting for you -\n";
 		$out .= "it doesn't touch item price history, which isn't tied to any one player.\n";
@@ -444,6 +450,8 @@ class Market extends BaseActiveModule
 		$out .= "  Capped at " . $limit . " item(s) per player (admin-configurable).\n\n";
 		$out .= "market unwatch <aoid>\n";
 		$out .= "  Stop watching an item. Doesn't affect anyone else still watching it.\n\n";
+		$out .= "market watchlist\n";
+		$out .= "  List everything currently on your watchlist, with quick links to unwatch any of them.\n\n";
 		$out .= "Notes:\n";
 		$out .= " - The first price check right after you start watching an item never alerts on orders\n";
 		$out .= "   that already existed - only genuinely new ones from then on count.\n";
@@ -631,7 +639,8 @@ class Market extends BaseActiveModule
 		$this->watch($id, $itemName, $ql, $icon);
 		$this->log_action($name, "watch", $id);
 
-		return "You're now watching " . $itemName . " (QL" . $ql . ") - you'll get a tell when a new order shows up.";
+		return "You're now watching " . $itemName . " (QL" . $ql . ") - you'll get a tell when a new order shows up. ["
+			. $this->bot->core("tools")->chatcmd("market watchlist", "View Watchlist") . "]";
 	}
 
 	function cmd_unwatch($name, $aoid)
@@ -648,6 +657,41 @@ class Market extends BaseActiveModule
 			return "Stopped watching " . $itemName . ".";
 		}
 		return "You weren't watching " . $itemName . ".";
+	}
+
+	/*
+	Lists everything the caller is currently subscribed to. LEFT JOINs aorefs defensively (same
+	fallback as cmd_unwatch's message) in case an item's local aorefs row is ever missing/pruned.
+	*/
+	function show_watchlist($name)
+	{
+		$rows = $this->bot->db->select(
+			"SELECT s.aoid, a.name, a.ql, a.icon, s.created_at FROM #___market_subscriptions s"
+			. " LEFT JOIN aorefs a ON a.id = s.aoid"
+			. " WHERE s.player = '" . $this->bot->db->real_escape_string($name) . "'"
+			. " ORDER BY s.created_at ASC"
+		);
+		$tools = $this->bot->core("tools");
+		if (empty($rows)) {
+			return "Your watchlist is empty. Try " . $tools->chatcmd("market help watch", "market help watch") . " for how to add items.";
+		}
+
+		$now = time();
+		$inside = "";
+		foreach ($rows as $row) {
+			list($aoid, $itemName, $ql, $icon, $createdAt) = $row;
+			$itemName = $itemName !== null ? $itemName : ("AOID " . $aoid);
+			$ql = $ql !== null ? $ql : 1;
+			$icon = $icon !== null ? $icon : 0;
+			$inside .= "<img src=rdb://" . $icon . "> <a href='itemref://" . $aoid . "/" . $aoid . "/" . $ql . "'>" . $itemName . "</a> QL" . $ql
+				. " - watching " . $this->bot->core("time")->format_seconds($now - $createdAt) . " ["
+				. $tools->chatcmd("market " . $aoid, "Overview") . "] ["
+				. $tools->chatcmd("market unwatch " . $aoid, "Unwatch") . "]\n";
+		}
+
+		$limit = intval($this->bot->core("settings")->get("Market", "MaxSubscriptionsPerPlayer"));
+		$out = count($rows) . " of " . $limit . " item(s) watched:\n\n" . $inside;
+		return $tools->make_blob("Your Watchlist", $out);
 	}
 
 	/*
