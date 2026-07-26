@@ -1,3 +1,10 @@
+# [2.19.0](https://github.com/zznathans/bebot-helm/compare/2.18.2...2.19.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** give the advertise blurb a more descriptive teaser ([303eca1](https://github.com/zznathans/bebot-helm/commit/303eca1b81ef2a8e3d92cfc39c944bbac8143a1e))
+
 ## [2.18.2](https://github.com/zznathans/bebot-helm/compare/2.18.1...2.18.2) (2026-07-26)
 
 
