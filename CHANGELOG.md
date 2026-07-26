@@ -1,3 +1,10 @@
+## [2.18.1](https://github.com/zznathans/bebot-helm/compare/2.18.0...2.18.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **bot:** wrap chatcmd() links in make_blob() so they're clickable ([7e99e92](https://github.com/zznathans/bebot-helm/commit/7e99e923f541b63f5dbf03bf01b067106335184e))
+
 # [2.18.0](https://github.com/zznathans/bebot-helm/compare/2.17.0...2.18.0) (2026-07-26)
 
 
