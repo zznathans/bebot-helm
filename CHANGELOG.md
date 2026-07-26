@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/zznathans/bebot-helm/compare/2.15.0...2.16.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** self-service !market register/unregister, own user list ([75a2988](https://github.com/zznathans/bebot-helm/commit/75a2988aa8c67175515c6511ab32efd7b4f9f329)), closes [#___adduser](https://github.com/zznathans/bebot-helm/issues/___adduser)
+
 # [2.15.0](https://github.com/zznathans/bebot-helm/compare/2.14.0...2.15.0) (2026-07-26)
 
 
