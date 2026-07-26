@@ -25,6 +25,7 @@ class Market extends BaseActiveModule
 		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires being a registered bot user - see !adduser)";
 		$this->help['command']['market unwatch <aoid>'] = "Stop watching an item";
 		$this->help['command']['market user stats'] = "Show your own Market usage stats (ADMIN+ can pass a player name to check anyone)";
+		$this->help['command']['market help'] = "Show the Market module's in-game help pages";
 
 		$this->bot->core("settings")
 			->create("Market", "ApiUrl", "https://gmi.nadybot.org", "What's the GMI search API URL we should use (Nadybot's by default) ?");
@@ -206,7 +207,10 @@ class Market extends BaseActiveModule
 
 	function command_handler($name, $msg, $channel)
 	{
-		if (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
+		if (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
+			$this->log_action($name, "help");
+			return $this->show_help(trim($info[1]));
+		} elseif (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
 			$this->log_action($name, "status");
 			return $this->show_status();
 		} elseif (preg_match('/^(?:market|mkt)\s+user\s+stats\s*(.*)$/i', $msg, $info)) {
@@ -227,7 +231,7 @@ class Market extends BaseActiveModule
 			$this->log_action($name, "search");
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market watch <item>  or  market unwatch <aoid>  or  market user stats";
+			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market watch <item>  or  market unwatch <aoid>  or  market user stats  or  market help";
 		}
 	}
 
@@ -245,6 +249,138 @@ class Market extends BaseActiveModule
 			"INSERT INTO #___market_user_actions (player, action, aoid, created_at) VALUES ('"
 				. $player . "', '" . $action . "', " . $aoidSql . ", " . time() . ")"
 		);
+	}
+
+	/*
+	!market help [topic] - a landing page linking out to one blob per topic, same
+	menu-of-linked-blobs pattern Modules/AccessControlUi.php uses for its `commands` command.
+	*/
+	function show_help($topic = "")
+	{
+		switch (strtolower($topic)) {
+			case "search":
+			case "overview":
+				return $this->help_search();
+			case "watch":
+			case "watchlist":
+			case "alerts":
+				return $this->help_watch();
+			case "status":
+			case "tracking":
+				return $this->help_status();
+			case "stats":
+			case "user":
+				return $this->help_stats();
+			case "settings":
+			case "admin":
+				return $this->help_settings();
+			default:
+				return $this->help_landing();
+		}
+	}
+
+	function help_landing()
+	{
+		$tools = $this->bot->core("tools");
+		$out = "Search GMI prices, track history, build a personal watchlist, and get alerted when new orders show up.\n\n";
+		$out .= "[" . $tools->chatcmd("market help search", "Searching & Item Overview") . "] - find items and read their price/QL breakdown\n";
+		$out .= "[" . $tools->chatcmd("market help watch", "Watchlist & Alerts") . "] - get a tell when a new order is posted\n";
+		$out .= "[" . $tools->chatcmd("market help status", "Tracking Status") . "] - see everything currently being tracked\n";
+		$out .= "[" . $tools->chatcmd("market help stats", "Your Stats") . "] - your own usage history\n";
+		$out .= "[" . $tools->chatcmd("market help settings", "Settings") . "] - every bot setting this module exposes\n";
+		return $tools->make_blob("Market Help", $out);
+	}
+
+	function help_search()
+	{
+		$tools = $this->bot->core("tools");
+		$out = "__________Searching & Item Overview_________\n\n";
+		$out .= "market <item name>\n";
+		$out .= "  Search the local item database by (partial) name. Click a result to open its full overview.\n";
+		$out .= "  Example: " . $tools->chatcmd("market viralbots", "market viralbots") . "\n\n";
+		$out .= "market <aoid>\n";
+		$out .= "  Full overview for a specific item ID: icon/item-info links, a live buy/sell summary,\n";
+		$out .= "  a price-by-QL-band breakdown (one item ID can have orders across very different\n";
+		$out .= "  qualities, so a single blended average wouldn't mean much), and the cheapest sell /\n";
+		$out .= "  highest buy orders right now.\n\n";
+		$out .= "Looking up an item also starts tracking its price history automatically - that's\n";
+		$out .= "separate from getting alerted about it, see " . $tools->chatcmd("market help watch", "Watchlist & Alerts") . ".\n\n";
+		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Searching & Overview", $out);
+	}
+
+	function help_watch()
+	{
+		$tools = $this->bot->core("tools");
+		$limit = $this->bot->core("settings")->get("Market", "MaxSubscriptionsPerPlayer");
+		$out = "__________Watchlist & Alerts_________\n\n";
+		$out .= "market watch <item name or aoid>\n";
+		$out .= "  Add an item to your personal watchlist. You'll get a tell as soon as a new order is\n";
+		$out .= "  posted for it - immediately if you're online, or the next time you log on if you weren't.\n";
+		$out .= "  Requires being a registered user of this bot - ask an admin to !adduser you first.\n";
+		$out .= "  Capped at " . $limit . " item(s) per player (admin-configurable).\n\n";
+		$out .= "market unwatch <aoid>\n";
+		$out .= "  Stop watching an item. Doesn't affect anyone else still watching it.\n\n";
+		$out .= "Notes:\n";
+		$out .= " - The first price check right after you start watching an item never alerts on orders\n";
+		$out .= "   that already existed - only genuinely new ones from then on count.\n";
+		$out .= " - \"New\" is judged by price/QL/quantity/party, since the market API has no listing ID -\n";
+		$out .= "   so an identical relisting after the original expired will look new again.\n\n";
+		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Watchlist & Alerts", $out);
+	}
+
+	function help_status()
+	{
+		$tools = $this->bot->core("tools");
+		$out = "__________Tracking Status_________\n\n";
+		$out .= "market status\n";
+		$out .= "  Lists every item currently tracked for price history: [Auto] for one of the most\n";
+		$out .= "  actively-traded items (resynced from ao-stonks.com), [Manual] for something someone\n";
+		$out .= "  looked up or watched, and when it was last polled.\n\n";
+		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Tracking Status", $out);
+	}
+
+	function help_stats()
+	{
+		$tools = $this->bot->core("tools");
+		$out = "__________Your Stats_________\n\n";
+		$out .= "market user stats\n";
+		$out .= "  Your own Market usage: total actions, when you first showed up, your active watchlist\n";
+		$out .= "  count, and a breakdown by action type (search/overview/watch/unwatch/status/etc).\n\n";
+		$out .= "market user stats <player>\n";
+		$out .= "  ADMIN+ only - the same breakdown for any other player.\n\n";
+		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Your Stats", $out);
+	}
+
+	function help_settings()
+	{
+		$tools = $this->bot->core("tools");
+		$settings = $this->bot->core("settings");
+		$rows = array(
+			array("Market.ApiUrl", "GMI search API URL"),
+			array("Market.PollIntervalMinutes", "How often watched items are re-polled to build price history"),
+			array("Market.HistoryRetentionDays", "How many days of price history are kept per item"),
+			array("Market.WatchExpireDays", "Stop polling an item nobody's looked up/watched again within this many days"),
+			array("Market.PollBatchSize", "Max items re-polled per timer cycle"),
+			array("Market.AutoTrackEnabled", "Auto-track the most actively-traded items"),
+			array("Market.AutoTrackCount", "How many top-traded items to auto-track"),
+			array("Market.AutoTrackIntervalMinutes", "How often the auto-tracked list is resynced"),
+			array("Market.AutoTrackSourceUrl", "Site used to rank the most actively-traded items"),
+			array("Market.MaxSubscriptionsPerPlayer", "Max items a single player can watch at once")
+		);
+		$out = "__________Settings_________\n";
+		$out .= "Changeable by an admin via the bot's settings command.\n\n";
+		foreach ($rows as $row) {
+			list($module, $setting) = explode(".", $row[0]);
+			$value = $settings->get($module, $setting);
+			$display = is_bool($value) ? ($value ? "On" : "Off") : (string) $value;
+			$out .= $this->tab($row[0], 34) . " = " . $this->tab($display, 12) . " " . $row[1] . "\n";
+		}
+		$out .= "\n[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
+		return $tools->make_blob("Market Help: Settings", $out);
 	}
 
 	/*
