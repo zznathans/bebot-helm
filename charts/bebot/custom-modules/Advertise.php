@@ -21,6 +21,7 @@ class Advertise extends BaseActiveModule
 		$this->register_command("all", "advertise", "ADMIN");
 		$this->help['description'] = "Periodically broadcasts a short bot self-ad to a public OOC channel.";
 		$this->help['command']['advertise now'] = "Send the advertisement immediately, regardless of the Enabled setting or timer";
+		$this->help['command']['advertise preview'] = "Tell yourself the advertisement so you can see how it looks, without posting it anywhere public";
 
 		$this->bot->core("settings")
 			->create("Advertise", "Enabled", false, "Should the bot periodically broadcast a self-ad to a public OOC channel ?", "On;Off");
@@ -46,11 +47,14 @@ class Advertise extends BaseActiveModule
 
 	function command_handler($name, $msg, $channel)
 	{
-		if (preg_match('/^advertise\s+now\s*$/i', $msg)) {
+		if (preg_match('/^advertise\s+preview\s*$/i', $msg)) {
+			$this->bot->send_tell($name, $this->message());
+			return "Sent you a tell with the current advertisement text.";
+		} elseif (preg_match('/^advertise\s+now\s*$/i', $msg)) {
 			$this->broadcast(true);
 			return "Advertisement sent.";
 		}
-		return "Usage: advertise now";
+		return "Usage: advertise preview  or  advertise now";
 	}
 
 	function timer($name, $prefix, $suffix, $delay)
