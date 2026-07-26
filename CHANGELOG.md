@@ -1,3 +1,10 @@
+# [2.14.0](https://github.com/zznathans/bebot-helm/compare/2.13.0...2.14.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** add !advertise preview to tell yourself the ad text ([482c6ee](https://github.com/zznathans/bebot-helm/commit/482c6ee619dbf2d8b76cd6aaf60eeeb5f91262e0))
+
 # [2.13.0](https://github.com/zznathans/bebot-helm/compare/2.12.0...2.13.0) (2026-07-26)
 
 
