@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/zznathans/bebot-helm/compare/2.14.0...2.15.0) (2026-07-26)
+
+
+### Features
+
+* **market:** disable Market module by default ([bc16b2a](https://github.com/zznathans/bebot-helm/commit/bc16b2a09007b59b7595f2257436d5dd38c09964))
+
 # [2.14.0](https://github.com/zznathans/bebot-helm/compare/2.13.0...2.14.0) (2026-07-26)
 
 
