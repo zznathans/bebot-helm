@@ -100,8 +100,10 @@ class Advertise extends BaseActiveModule
 
 	A bare chatcmd() link posted directly to a channel/tell does NOT render as clickable - every
 	working example in the codebase (Modules/Raffle.php's click_join(), Modules/AltsUi.php's alt
-	confirmation tell) always wraps it in make_blob() first. The visible teaser text goes to the
-	channel; the actual clickable "market help" link only becomes real once someone opens the blob.
+	confirmation tell) always wraps it in make_blob() first. Since only the blob's title text is
+	visible directly in the channel (the rest is hidden until someone actually opens it), that
+	title itself needs to carry the actual pitch rather than a generic "click here" - so anyone
+	just reading the channel, not clicking anything, still learns what the bot does.
 	*/
 	function message()
 	{
@@ -112,9 +114,13 @@ class Advertise extends BaseActiveModule
 			return implode("", file("./Text/Advertise.txt"));
 		}
 		$tools = $this->bot->core("tools");
-		$inside = $this->bot->botname . " tracks GMI prices and can alert you to new orders.\n\n"
+		$teaser = $this->bot->botname . " tracks GMI market prices and can tell you the moment a new buy/sell order is posted for an item you're watching - click here to learn more!";
+		$inside = $this->bot->botname . "'s Market module lets you:\n"
+			. "- Search live GMI prices for any item\n"
+			. "- Track price history and trends over time\n"
+			. "- Build a personal watchlist and get a tell when a new order shows up\n\n"
 			. "[" . $tools->chatcmd("market help", "market help") . "]";
-		return $this->bot->botname . " - " . $tools->make_blob("click for details", $inside);
+		return $tools->make_blob($teaser, $inside);
 	}
 }
 ?>
