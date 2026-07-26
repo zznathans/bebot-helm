@@ -22,6 +22,9 @@ class Market extends BaseActiveModule
 		$this->help['command']['market <item name>'] = "Search for an item by (partial) name";
 		$this->help['command']['market <aoid>'] = "Show the full market overview for a specific item ID";
 		$this->help['command']['market status'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
+		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires being a registered bot user - see !adduser)";
+		$this->help['command']['market unwatch <aoid>'] = "Stop watching an item";
+		$this->help['command']['market user stats'] = "Show your own Market usage stats (ADMIN+ can pass a player name to check anyone)";
 
 		$this->bot->core("settings")
 			->create("Market", "ApiUrl", "https://gmi.nadybot.org", "What's the GMI search API URL we should use (Nadybot's by default) ?");
@@ -43,8 +46,13 @@ class Market extends BaseActiveModule
 			->create("Market", "AutoTrackSourceUrl", "https://ao-stonks.com", "What site should be used to determine the most actively-traded items ?");
 		$this->bot->core("settings")
 			->create("Market", "AutoTrackLastSync", 0, "Internal: unix timestamp of the last successful auto-track resync - do not set manually");
+		$this->bot->core("settings")
+			->create("Market", "MaxSubscriptionsPerPlayer", 25, "Maximum number of items a single player can watch at once");
 
 		$this->table();
+
+		// Deliver any pending watchlist alerts once a subscriber logs back on - see notify() below.
+		$this->bot->core("logon_notifies")->register($this);
 
 		$this->bot->core("timer")->register_callback("Market", $this);
 		$existing = $this->bot->core("timer")->list_timed_events("Market");
@@ -138,19 +146,105 @@ class Market extends BaseActiveModule
 			);
 			$this->bot->db->set_version("market_history", 2);
 		}
+
+		// Per-player watchlist: which items a registered player wants order-alert tells for. side/
+		// min_price/max_price/min_volume are reserved for a later iteration's alert criteria - until
+		// that ships they stay at their permissive defaults and every new order notifies regardless.
+		$this->bot->db->query(
+			"CREATE TABLE IF NOT EXISTS " . $this->bot->db->define_tablename("market_subscriptions", "false") . "
+				(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					player VARCHAR(30) NOT NULL,
+					aoid INT NOT NULL,
+					side ENUM('any', 'buy', 'sell') NOT NULL DEFAULT 'any',
+					min_price BIGINT NULL,
+					max_price BIGINT NULL,
+					min_volume INT NULL,
+					created_at INT NOT NULL,
+					UNIQUE INDEX market_subscriptions_player_aoid (player, aoid))"
+		);
+		// The "have we already alerted on this exact order" ledger - rebuilt every poll cycle in
+		// detect_new_orders(), so it never needs a separate pruning job.
+		$this->bot->db->query(
+			"CREATE TABLE IF NOT EXISTS " . $this->bot->db->define_tablename("market_seen_orders", "false") . "
+				(aoid INT NOT NULL,
+					fingerprint VARCHAR(64) NOT NULL,
+					PRIMARY KEY (aoid, fingerprint))"
+		);
+		// Queued tells for subscribers who were offline when a new order was detected - drained by
+		// notify() (the logon_notifies callback) once they next log on.
+		$this->bot->db->query(
+			"CREATE TABLE IF NOT EXISTS " . $this->bot->db->define_tablename("market_pending_alerts", "false") . "
+				(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					player VARCHAR(30) NOT NULL,
+					aoid INT NOT NULL,
+					message VARCHAR(500) NOT NULL,
+					created_at INT NOT NULL)"
+		);
+		// Per-player action ledger backing !market user stats.
+		$this->bot->db->query(
+			"CREATE TABLE IF NOT EXISTS " . $this->bot->db->define_tablename("market_user_actions", "false") . "
+				(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					player VARCHAR(30) NOT NULL,
+					action VARCHAR(20) NOT NULL,
+					aoid INT NULL,
+					created_at INT NOT NULL,
+					INDEX market_user_actions_player_ts (player, created_at))"
+		);
+		if (!$this->bot->db->get_version("market_subscriptions")) {
+			$this->bot->db->set_version("market_subscriptions", 1);
+		}
+		if (!$this->bot->db->get_version("market_seen_orders")) {
+			$this->bot->db->set_version("market_seen_orders", 1);
+		}
+		if (!$this->bot->db->get_version("market_pending_alerts")) {
+			$this->bot->db->set_version("market_pending_alerts", 1);
+		}
+		if (!$this->bot->db->get_version("market_user_actions")) {
+			$this->bot->db->set_version("market_user_actions", 1);
+		}
 	}
 
 	function command_handler($name, $msg, $channel)
 	{
 		if (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
+			$this->log_action($name, "status");
 			return $this->show_status();
+		} elseif (preg_match('/^(?:market|mkt)\s+user\s+stats\s*(.*)$/i', $msg, $info)) {
+			$target = trim($info[1]);
+			$this->log_action($name, "userstats");
+			return $this->show_user_stats($name, $target === "" ? null : $target);
+		} elseif (preg_match('/^(?:market|mkt)\s+unwatch\s+([0-9]+)\s*$/i', $msg, $info)) {
+			return $this->cmd_unwatch($name, intval($info[1]));
+		} elseif (preg_match('/^(?:market|mkt)\s+watch\s+([0-9]+)\s*$/i', $msg, $info)) {
+			return $this->cmd_watch($name, intval($info[1]));
+		} elseif (preg_match('/^(?:market|mkt)\s+watch\s+(.+)$/i', $msg, $info)) {
+			$this->log_action($name, "search");
+			return $this->search_items(trim($info[1]), "market watch", "Watch");
 		} elseif (preg_match('/^(?:market|mkt)\s+([0-9]+)\s*$/i', $msg, $info)) {
+			$this->log_action($name, "overview", intval($info[1]));
 			return $this->show_overview($name, intval($info[1]));
 		} elseif (preg_match('/^(?:market|mkt)\s+(.+)$/i', $msg, $info)) {
+			$this->log_action($name, "search");
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>  or  market status";
+			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market watch <item>  or  market unwatch <aoid>  or  market user stats";
 		}
+	}
+
+	function is_registered($name)
+	{
+		return $this->bot->core("user")->get_db_uid($name) > 0;
+	}
+
+	function log_action($player, $action, $aoid = null)
+	{
+		$player = $this->bot->db->real_escape_string($player);
+		$action = $this->bot->db->real_escape_string($action);
+		$aoidSql = ($aoid === null) ? "NULL" : intval($aoid);
+		$this->bot->db->query(
+			"INSERT INTO #___market_user_actions (player, action, aoid, created_at) VALUES ('"
+				. $player . "', '" . $action . "', " . $aoidSql . ", " . time() . ")"
+		);
 	}
 
 	/*
@@ -158,7 +252,7 @@ class Market extends BaseActiveModule
 	(Gmi.php's own version does not escape - avoiding that mistake here) and including the icon
 	column so results can be presented as itemref/icon links.
 	*/
-	function search_items($search)
+	function search_items($search, $commandPrefix = "market", $label = "Overview")
 	{
 		$words = preg_split('/\s+/', strtolower(trim($search)));
 		$where = array();
@@ -179,7 +273,7 @@ class Market extends BaseActiveModule
 		$inside = "";
 		foreach ($refs as $ref) {
 			$inside .= "<img src=rdb://" . $ref[3] . "> " . $ref[1] . " QL" . $ref[2] . " ["
-				. $this->bot->core("tools")->chatcmd("market " . $ref[0], "Overview") . "]\n";
+				. $this->bot->core("tools")->chatcmd($commandPrefix . " " . $ref[0], $label) . "]\n";
 		}
 		return count($refs) . " matching item(s) : " . $this->bot->core("tools")->make_blob("click to view", $inside);
 	}
@@ -226,6 +320,121 @@ class Market extends BaseActiveModule
 				. $aoid . ", '" . $name . "', " . intval($ql) . ", " . intval($icon) . ", " . $now . ", 0)"
 			. " ON DUPLICATE KEY UPDATE name = '" . $name . "', ql = " . intval($ql) . ", icon = " . intval($icon)
 		);
+	}
+
+	/*
+	Personal watchlist subscription (distinct from watch() above, which just controls whether the
+	bot polls an item at all - this is "does this specific player want a tell about it"). Requires
+	being a known bot user (added via !adduser) since this is the gate the rest of the codebase
+	already uses for "is this a registered player" - there's no separate self-service registration.
+	*/
+	function cmd_watch($name, $aoid)
+	{
+		$item = $this->bot->db->select("SELECT id, name, ql, icon FROM aorefs WHERE id = " . $aoid . " LIMIT 1");
+		if (empty($item)) {
+			return "Unknown item ID " . $aoid . ". Try 'market watch <item name>' to search first.";
+		}
+		list($id, $itemName, $ql, $icon) = $item[0];
+
+		if (!$this->is_registered($name)) {
+			$this->log_action($name, "watch_denied", $id);
+			return "You need to be a registered user of this bot first - ask an admin to add you with !adduser.";
+		}
+
+		$nameEsc = $this->bot->db->real_escape_string($name);
+		$existing = $this->bot->db->select(
+			"SELECT id FROM #___market_subscriptions WHERE player = '" . $nameEsc . "' AND aoid = " . $id
+		);
+		if (!empty($existing)) {
+			return "You're already watching " . $itemName . " (QL" . $ql . ").";
+		}
+
+		$limit = intval($this->bot->core("settings")->get("Market", "MaxSubscriptionsPerPlayer"));
+		$count = $this->bot->db->select(
+			"SELECT COUNT(*) FROM #___market_subscriptions WHERE player = '" . $nameEsc . "'"
+		);
+		if ((int) $count[0][0] >= $limit) {
+			return "You're already watching the maximum of " . $limit . " item(s). Unwatch something first with 'market unwatch <aoid>'.";
+		}
+
+		$this->bot->db->query(
+			"INSERT INTO #___market_subscriptions (player, aoid, side, created_at) VALUES ('"
+				. $nameEsc . "', " . $id . ", 'any', " . time() . ")"
+		);
+		$this->watch($id, $itemName, $ql, $icon);
+		$this->bot->core("notify")->add($name, $name);
+		$this->log_action($name, "watch", $id);
+
+		return "You're now watching " . $itemName . " (QL" . $ql . ") - you'll get a tell when a new order shows up.";
+	}
+
+	function cmd_unwatch($name, $aoid)
+	{
+		$item = $this->bot->db->select("SELECT name FROM aorefs WHERE id = " . intval($aoid) . " LIMIT 1");
+		$itemName = !empty($item) ? $item[0][0] : ("AOID " . $aoid);
+
+		$deleted = $this->bot->db->returnQuery(
+			"DELETE FROM #___market_subscriptions WHERE player = '" . $this->bot->db->real_escape_string($name) . "' AND aoid = " . intval($aoid)
+		);
+		$this->log_action($name, "unwatch", intval($aoid));
+
+		if ($deleted) {
+			return "Stopped watching " . $itemName . ".";
+		}
+		return "You weren't watching " . $itemName . ".";
+	}
+
+	/*
+	Called by Core/LogonNotifies.php once a player with #___users.notify=1 logs back on - drains
+	any tells that couldn't be delivered live because they were offline when a watched item's new
+	order was detected (see detect_new_orders()/notify_subscribers() below).
+	*/
+	function notify($nickname, $startup)
+	{
+		$nameEsc = $this->bot->db->real_escape_string($nickname);
+		$pending = $this->bot->db->select(
+			"SELECT id, message FROM #___market_pending_alerts WHERE player = '" . $nameEsc . "' ORDER BY created_at ASC"
+		);
+		foreach ($pending as $row) {
+			$this->bot->send_tell($nickname, $row[1]);
+			$this->bot->db->query("DELETE FROM #___market_pending_alerts WHERE id = " . intval($row[0]));
+		}
+	}
+
+	function show_user_stats($caller, $target = null)
+	{
+		if ($target !== null) {
+			if (!$this->bot->core("security")->check_access($caller, "ADMIN")) {
+				return "Only ADMIN+ can look up another player's market stats.";
+			}
+			$player = $target;
+		} else {
+			$player = $caller;
+		}
+		$playerEsc = $this->bot->db->real_escape_string($player);
+
+		$total = $this->bot->db->select(
+			"SELECT COUNT(*), MIN(created_at) FROM #___market_user_actions WHERE player = '" . $playerEsc . "'"
+		);
+		if (empty($total) || $total[0][0] == 0) {
+			return $player . " has no recorded Market activity.";
+		}
+		$byAction = $this->bot->db->select(
+			"SELECT action, COUNT(*) FROM #___market_user_actions WHERE player = '" . $playerEsc . "' GROUP BY action ORDER BY COUNT(*) DESC"
+		);
+		$subs = $this->bot->db->select(
+			"SELECT COUNT(*) FROM #___market_subscriptions WHERE player = '" . $playerEsc . "'"
+		);
+
+		$out = "__________Market Activity: " . $player . "_________\n";
+		$out .= "Total actions        : " . $total[0][0] . "\n";
+		$out .= "First seen           : " . date("Y-m-d", $total[0][1]) . " (" . $this->bot->core("time")->format_seconds(time() - $total[0][1]) . " ago)\n";
+		$out .= "Active subscriptions : " . (!empty($subs) ? (int) $subs[0][0] : 0) . "\n\n";
+		$out .= $this->tab("ACTION", 14) . "COUNT\n";
+		foreach ($byAction as $row) {
+			$out .= $this->tab(ucfirst($row[0]), 14) . $row[1] . "\n";
+		}
+		return $this->bot->core("tools")->make_blob("Market Stats", $out);
 	}
 
 	function render_summary($orders)
@@ -504,7 +713,7 @@ class Market extends BaseActiveModule
 
 		// Re-poll the items most overdue for a refresh.
 		$due = $this->bot->db->select(
-			"SELECT aoid, ql FROM #___market_watch WHERE last_polled < " . ($now - $intervalSeconds)
+			"SELECT aoid, ql, name FROM #___market_watch WHERE last_polled < " . ($now - $intervalSeconds)
 			. " ORDER BY last_polled ASC LIMIT " . $batchSize
 		);
 		$this->bot->log("MARKET", "POLL", "Poll cycle: " . count($due) . " item(s) due for refresh");
@@ -512,9 +721,11 @@ class Market extends BaseActiveModule
 		foreach ($due as $row) {
 			$aoid = intval($row[0]);
 			$anchorQl = intval($row[1]);
+			$itemName = $row[2];
 			$orders = $this->fetch_orders($aoid);
 			if ($orders !== false) {
 				$this->snapshot($aoid, $orders, $anchorQl);
+				$this->detect_new_orders($aoid, $orders, $itemName);
 				$updated++;
 			}
 			$this->bot->db->query("UPDATE #___market_watch SET last_polled = " . $now . " WHERE aoid = " . $aoid);
@@ -522,6 +733,75 @@ class Market extends BaseActiveModule
 		if (count($due) > 0) {
 			$this->bot->log("MARKET", "POLL", "Poll cycle complete: " . $updated . "/" . count($due) . " item(s) successfully updated", true);
 		}
+	}
+
+	/*
+	"Is this a new order" has no help from the API - GMI order objects carry no stable ID (just
+	count/price/min_ql-max_ql/buyer-or-seller/expiration). Fingerprints exclude `expiration` (it
+	counts down every poll, which would make every order look new every cycle) but include `count`
+	(static for a given listing, unlike expiration, so it still helps distinguish genuinely separate
+	orders at the same price/QL). The seen-set is fully rebuilt every cycle rather than aged out, so
+	there's no separate pruning job and a relisted-identical order after a real gap is treated as new.
+	*/
+	function detect_new_orders($aoid, $orders, $itemName)
+	{
+		$fingerprints = array();
+		foreach ($orders->sell_orders as $sell) {
+			$fingerprints[] = "sell|" . $sell->price . "|" . $sell->ql . "|" . $sell->count . "|" . $sell->seller;
+		}
+		foreach ($orders->buy_orders as $buy) {
+			$fingerprints[] = "buy|" . $buy->price . "|" . $buy->min_ql . "|" . $buy->max_ql . "|" . $buy->count . "|" . $buy->buyer;
+		}
+		$fingerprints = array_unique($fingerprints);
+
+		$seen = $this->bot->db->select(
+			"SELECT fingerprint FROM #___market_seen_orders WHERE aoid = " . intval($aoid)
+		);
+		$isFirstPoll = empty($seen);
+		if (!$isFirstPoll) {
+			$seenSet = array();
+			foreach ($seen as $row) {
+				$seenSet[$row[0]] = true;
+			}
+			$newFingerprints = array_diff($fingerprints, array_keys($seenSet));
+			if (!empty($newFingerprints)) {
+				$this->notify_subscribers($aoid, $itemName, count($newFingerprints));
+			}
+		}
+
+		$this->bot->db->query("DELETE FROM #___market_seen_orders WHERE aoid = " . intval($aoid));
+		foreach ($fingerprints as $fp) {
+			$this->bot->db->query(
+				"INSERT IGNORE INTO #___market_seen_orders (aoid, fingerprint) VALUES (" . intval($aoid) . ", '"
+					. $this->bot->db->real_escape_string($fp) . "')"
+			);
+		}
+	}
+
+	function notify_subscribers($aoid, $itemName, $newOrderCount)
+	{
+		$subs = $this->bot->db->select(
+			"SELECT player FROM #___market_subscriptions WHERE aoid = " . intval($aoid)
+		);
+		if (empty($subs)) {
+			return;
+		}
+		$message = $newOrderCount . " new order(s) posted for " . $itemName . " ["
+			. $this->bot->core("tools")->chatcmd("market " . $aoid, "View") . "]";
+
+		foreach ($subs as $row) {
+			$player = $row[0];
+			if ($this->bot->core("chat")->buddy_online($player)) {
+				$this->bot->send_tell($player, $message);
+			} else {
+				$this->bot->db->query(
+					"INSERT INTO #___market_pending_alerts (player, aoid, message, created_at) VALUES ('"
+						. $this->bot->db->real_escape_string($player) . "', " . intval($aoid) . ", '"
+						. $this->bot->db->real_escape_string($message) . "', " . time() . ")"
+				);
+			}
+		}
+		$this->bot->log("MARKET", "ALERT", "AOID " . $aoid . ": notified " . count($subs) . " subscriber(s) of " . $newOrderCount . " new order(s)", true);
 	}
 
 	/*
