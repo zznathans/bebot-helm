@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/zznathans/bebot-helm/compare/2.12.0...2.13.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** add periodic self-advertisement broadcast (off by default) ([9971e26](https://github.com/zznathans/bebot-helm/commit/9971e26bfce1020affc5c00fb19535dd5acbcf19))
+
 # [2.12.0](https://github.com/zznathans/bebot-helm/compare/2.11.0...2.12.0) (2026-07-26)
 
 
