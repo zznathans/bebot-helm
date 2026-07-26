@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/zznathans/bebot-helm/compare/2.9.0...2.10.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** persist Market's cycle-level log events to the DB log ([5d4a750](https://github.com/zznathans/bebot-helm/commit/5d4a75065e9cc73f2f94ba85bcbca4593f55e153)), closes [hi#frequency](https://github.com/hi/issues/frequency)
+
 # [2.9.0](https://github.com/zznathans/bebot-helm/compare/2.8.1...2.9.0) (2026-07-25)
 
 
