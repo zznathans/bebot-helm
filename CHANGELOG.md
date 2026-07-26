@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/zznathans/bebot-helm/compare/2.16.0...2.17.0) (2026-07-26)
+
+
+### Features
+
+* **bot:** per-subcommand access levels for Market, admin-gate settings ([c6e907b](https://github.com/zznathans/bebot-helm/commit/c6e907badf235f37af3d167df55f9cf4e0d114e1))
+
 # [2.16.0](https://github.com/zznathans/bebot-helm/compare/2.15.0...2.16.0) (2026-07-26)
 
 
