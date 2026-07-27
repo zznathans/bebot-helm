@@ -33,7 +33,13 @@ metadata:
   name: {{ .Release.Name }}-mariadb-backup
   namespace: {{ .Release.Namespace }}
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    # Deliberately after the per-instance Database/User/Grant CRs (wave "2"), not alongside
+    # the MariaDB CR itself. ArgoCD's sync-wave gate requires every resource in a wave to be
+    # Healthy before the next wave applies, and this CRD's health check only turns Healthy once
+    # an actual backup run completes - a transient S3/credentials misconfiguration (or the
+    # first scheduled run just hasn't fired yet) would otherwise block bot database/user/grant
+    # provisioning, which has no real dependency on backups ever succeeding.
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   mariaDbRef:
     name: {{ .Release.Name }}-mariadb
