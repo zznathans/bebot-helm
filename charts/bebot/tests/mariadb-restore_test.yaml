@@ -1,0 +1,52 @@
+suite: mariadb restore
+templates:
+  - mariadb/mariadb-restore.yaml
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.restore.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: fails when restore is enabled but backup is not
+    set:
+      bebot.mariadb.restore.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "bebot.mariadb.restore.enabled requires bebot.mariadb.backup.enabled (there must be a Backup CR to restore from)"
+
+  - it: renders a Restore CR referencing the MariaDB and Backup CRs
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.restore.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Restore
+      - equal:
+          path: spec.mariaDbRef.name
+          value: RELEASE-NAME-mariadb
+      - equal:
+          path: spec.backupRef.name
+          value: RELEASE-NAME-mariadb-backup
+      - notExists:
+          path: spec.targetRecoveryTime
+
+  - it: sets targetRecoveryTime when provided
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.restore.enabled: true
+      bebot.mariadb.restore.targetRecoveryTime: "2023-12-19T09:00:00Z"
+    asserts:
+      - equal:
+          path: spec.targetRecoveryTime
+          value: "2023-12-19T09:00:00Z"

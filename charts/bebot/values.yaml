@@ -14,42 +14,49 @@ bebot:
     # -- How often ExternalSecrets poll for updates.
     secretRefreshInterval: 1h
 
-  mariadb:
-    # -- Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database.
+  mariadbOperator:
+    # -- Pull in the mariadb-operator and mariadb-operator-crds charts as dependencies of this
+    # -- chart (toggleable via Chart.yaml `condition`). Enabled by default so the chart works
+    # -- out of the box. If your cluster already runs a shared copy of the operator, set this to
+    # -- false to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC.
     enabled: true
-    # -- Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs.
+
+  mariadb:
+    # -- Deploy a MariaDB instance (via the mariadb-operator's MariaDB CR) as part of this chart.
+    # -- Set to false to use an external/managed database. Requires the mariadb-operator CRDs/controller
+    # -- to already be present in the cluster (see bebot.mariadbOperator.enabled).
+    enabled: true
+    # -- Container image for MariaDB, passed through to the MariaDB CR.
     image: "mariadb:11.4"
     persistence:
-      # -- Enable persistent storage for MariaDB data. If false, data is lost on pod restart.
+      # -- Enable persistent storage for MariaDB data. If false, the MariaDB CR uses ephemeral storage and data is lost on pod restart.
       enabled: true
-      # -- Size of the PersistentVolumeClaim for MariaDB data.
+      # -- Size of the MariaDB CR's storage volume.
       size: 1Gi
-      # -- StorageClass to use for the PVC. Leave empty to use the cluster default.
+      # -- StorageClass to use for the volume. Leave empty to use the cluster default.
       storageClass: ""
-      # -- Access mode for the PVC. RWO is required for most block storage backends.
-      accessMode: ReadWriteOnce
     # -- MySQL root user name to create.
     rootUser: "root"
     # -- Host mask for the root user grant (% = allow from any host).
     rootHost: "%"
-    # -- Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally.
-    dbSetupEnabled: true
     metrics:
-      # -- Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104.
+      # -- Enable the MariaDB CR's built-in Prometheus exporter (spec.metrics.enabled) and expose metrics on port 9104.
       enabled: false
-      # -- Container image for the mysqld_exporter sidecar.
-      image: "prom/mysqld-exporter:v0.16.0"
+      # -- Container image for the operator-managed mysqld_exporter. Leave empty to use the operator's default.
+      image: ""
       grafanaDashboard:
         # -- Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment.
         enabled: false
         # -- Label the Grafana sidecar uses to discover dashboard ConfigMaps.
         label: grafana_dashboard
     backup:
-      # -- Enable a CronJob to periodically dump each database to SQL files.
+      # -- Enable a mariadb-operator Backup CR to periodically dump each database.
       enabled: false
-      # -- Cron schedule for the backup job (default: 2am daily).
+      # -- Cron schedule for the backup (default: 2am daily).
       schedule: "0 2 * * *"
-      # -- Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` dumps to an emptyDir then uploads to an S3-compatible bucket.
+      # -- How long to retain backups for, as a Go duration string (e.g. "720h" = 30 days).
+      maxRetention: "720h"
+      # -- Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` uploads to an S3-compatible bucket.
       destination: pvc
       pvc:
         # -- Size of the PVC used to store backup dumps.
@@ -67,8 +74,6 @@ bebot:
         endpoint: ""
         # -- Key prefix/path within the bucket where dumps are written.
         path: "backups/bebot"
-        # -- Container image used to perform the S3 upload. Must have the aws CLI available.
-        # image: "amazon/aws-cli:2.34.42"
         # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
         credentialsSecret: ""
         externalSecret:
@@ -77,15 +82,21 @@ bebot:
           # -- Name of the secret in the external store to pull S3 credentials from. Required when enabled is true.
           # The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64).
           secretName: ""
-      snapshot:
-        # -- Enable a frequent snapshot CronJob that overwrites a consistent set of dump files (no timestamp). Useful for
-        # -- keeping a recent copy separate from long-term timestamped backups. Requires the same destination and S3 config
-        # -- as the backup job when destination is "s3".
-        enabled: false
-        # -- How often to run the snapshot job, in minutes.
-        intervalMinutes: 15
-        # -- Key prefix/path within the S3 bucket where snapshot dumps are written. Overrides backup.s3.path for snapshots.
-        path: "snapshots/bebot"
+    restore:
+      # -- Enable a one-shot mariadb-operator Restore CR that restores the live MariaDB instance from a Backup.
+      # -- Turn this on and run `helm upgrade` to trigger a restore, then turn it back off; it does not run automatically.
+      # -- Requires bebot.mariadb.backup.enabled so there's a Backup CR to restore from.
+      enabled: false
+      # -- Optional: restore from a specific point in time (RFC3339, e.g. "2023-12-19T09:00:00Z") instead of the latest backup.
+      targetRecoveryTime: ""
+    bootstrapFrom:
+      # -- Seed a brand-new MariaDB instance automatically from the latest Backup at creation time
+      # -- (spec.bootstrapFrom on the MariaDB CR). This is the disaster-recovery path: if the MariaDB
+      # -- CR/PVC is lost and recreated, it comes back up already populated instead of empty.
+      # -- Requires bebot.mariadb.backup.enabled. Has no effect on an already-existing instance.
+      enabled: false
+      # -- Optional: bootstrap from a specific point in time (RFC3339) instead of the latest backup.
+      targetRecoveryTime: ""
 
     # Controls how the MariaDB root credentials secret is managed.
     # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).

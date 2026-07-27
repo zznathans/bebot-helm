@@ -1,0 +1,51 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- range .Values.bebot.instances }}
+{{- if ne .enabled false }}
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Database
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  mariaDbRef:
+    name: {{ $.Release.Name }}-mariadb
+  name: {{ .mariadbDatabase | default "" | quote }}
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  mariaDbRef:
+    name: {{ $.Release.Name }}-mariadb
+  name: {{ .mariadbUser | default "" | quote }}
+  passwordSecretKeyRef:
+    name: {{ $.Release.Name }}-conf-{{ .name }}
+    key: mariadb_password
+  host: "%"
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  mariaDbRef:
+    name: {{ $.Release.Name }}-mariadb
+  username: {{ .mariadbUser | default "" | quote }}
+  host: "%"
+  database: {{ .mariadbDatabase | default "" | quote }}
+  table: "*"
+  privileges:
+    - "ALL PRIVILEGES"
+---
+{{- end }}
+{{- end }}
+{{- end }}

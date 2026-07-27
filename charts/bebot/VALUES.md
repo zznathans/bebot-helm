@@ -32,8 +32,9 @@ Helm chart for bebot
 | bebot.instances[0].name | string | `"mybot"` |  |
 | bebot.instances[0].raidbot | bool | `false` |  |
 | bebot.instances[0].superAdmins[0] | string | `"AdminCharacter"` |  |
-| bebot.mariadb.backup.destination | string | `"pvc"` | Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` dumps to an emptyDir then uploads to an S3-compatible bucket. |
-| bebot.mariadb.backup.enabled | bool | `false` | Enable a CronJob to periodically dump each database to SQL files. |
+| bebot.mariadb.backup.destination | string | `"pvc"` | Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` uploads to an S3-compatible bucket. |
+| bebot.mariadb.backup.enabled | bool | `false` | Enable a mariadb-operator Backup CR to periodically dump each database. |
+| bebot.mariadb.backup.maxRetention | string | `"720h"` | How long to retain backups for, as a Go duration string (e.g. "720h" = 30 days). |
 | bebot.mariadb.backup.pvc.accessMode | string | `"ReadWriteOnce"` | Access mode for the backup PVC. |
 | bebot.mariadb.backup.pvc.size | string | `"5Gi"` | Size of the PVC used to store backup dumps. |
 | bebot.mariadb.backup.pvc.storageClass | string | `""` | StorageClass for the backup PVC. Leave empty to use the cluster default. |
@@ -44,22 +45,22 @@ Helm chart for bebot
 | bebot.mariadb.backup.s3.externalSecret.secretName | string | `""` | Name of the secret in the external store to pull S3 credentials from. Required when enabled is true. The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64). |
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
-| bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup job (default: 2am daily). |
-| bebot.mariadb.backup.snapshot.enabled | bool | `false` | as the backup job when destination is "s3". |
-| bebot.mariadb.backup.snapshot.intervalMinutes | int | `15` | How often to run the snapshot job, in minutes. |
-| bebot.mariadb.backup.snapshot.path | string | `"snapshots/bebot"` | Key prefix/path within the S3 bucket where snapshot dumps are written. Overrides backup.s3.path for snapshots. |
-| bebot.mariadb.dbSetupEnabled | bool | `true` | Run the db-setup job to create per-instance databases and users on first deploy. Disable if managing database setup externally. |
-| bebot.mariadb.enabled | bool | `true` | Deploy a MariaDB instance as part of this chart. Set to false to use an external/managed database. |
-| bebot.mariadb.image | string | `"mariadb:11.4"` | Container image for MariaDB. Used by the MariaDB deployment, init containers, and backup jobs. |
-| bebot.mariadb.metrics.enabled | bool | `false` | Deploy a prom/mysqld_exporter sidecar and expose metrics on port 9104. |
+| bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup (default: 2am daily). |
+| bebot.mariadb.bootstrapFrom.enabled | bool | `false` | Requires bebot.mariadb.backup.enabled. Has no effect on an already-existing instance. |
+| bebot.mariadb.bootstrapFrom.targetRecoveryTime | string | `""` | Optional: bootstrap from a specific point in time (RFC3339) instead of the latest backup. |
+| bebot.mariadb.enabled | bool | `true` | to already be present in the cluster (see bebot.mariadbOperator.enabled). |
+| bebot.mariadb.image | string | `"mariadb:11.4"` | Container image for MariaDB, passed through to the MariaDB CR. |
+| bebot.mariadb.metrics.enabled | bool | `false` | Enable the MariaDB CR's built-in Prometheus exporter (spec.metrics.enabled) and expose metrics on port 9104. |
 | bebot.mariadb.metrics.grafanaDashboard.enabled | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
 | bebot.mariadb.metrics.grafanaDashboard.label | string | `"grafana_dashboard"` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |
-| bebot.mariadb.metrics.image | string | `"prom/mysqld-exporter:v0.16.0"` | Container image for the mysqld_exporter sidecar. |
-| bebot.mariadb.persistence.accessMode | string | `"ReadWriteOnce"` | Access mode for the PVC. RWO is required for most block storage backends. |
-| bebot.mariadb.persistence.enabled | bool | `true` | Enable persistent storage for MariaDB data. If false, data is lost on pod restart. |
-| bebot.mariadb.persistence.size | string | `"1Gi"` | Size of the PersistentVolumeClaim for MariaDB data. |
-| bebot.mariadb.persistence.storageClass | string | `""` | StorageClass to use for the PVC. Leave empty to use the cluster default. |
+| bebot.mariadb.metrics.image | string | `""` | Container image for the operator-managed mysqld_exporter. Leave empty to use the operator's default. |
+| bebot.mariadb.persistence.enabled | bool | `true` | Enable persistent storage for MariaDB data. If false, the MariaDB CR uses ephemeral storage and data is lost on pod restart. |
+| bebot.mariadb.persistence.size | string | `"1Gi"` | Size of the MariaDB CR's storage volume. |
+| bebot.mariadb.persistence.storageClass | string | `""` | StorageClass to use for the volume. Leave empty to use the cluster default. |
+| bebot.mariadb.restore.enabled | bool | `false` | Requires bebot.mariadb.backup.enabled so there's a Backup CR to restore from. |
+| bebot.mariadb.restore.targetRecoveryTime | string | `""` | Optional: restore from a specific point in time (RFC3339, e.g. "2023-12-19T09:00:00Z") instead of the latest backup. |
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
 | bebot.mariadb.rootUser | string | `"root"` | MySQL root user name to create. |
+| bebot.mariadbOperator.enabled | bool | `true` | false to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC. |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |

@@ -1,7 +1,6 @@
 suite: bebot deployment
 templates:
   - bebot/bebot-deployment.yaml
-  - mariadb/db-setup.yaml
 tests:
   - it: renders a Deployment for the default instance
     template: bebot/bebot-deployment.yaml

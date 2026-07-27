@@ -1,0 +1,9 @@
+dependencies:
+- name: mariadb-operator-crds
+  repository: https://mariadb-operator.github.io/mariadb-operator
+  version: 26.6.0
+- name: mariadb-operator
+  repository: https://mariadb-operator.github.io/mariadb-operator
+  version: 26.6.0
+digest: sha256:a59df3cfca862487109a8548376c618a64399698491accc3acab14c547be221c
+generated: "2026-07-26T21:52:35.582054833-04:00"

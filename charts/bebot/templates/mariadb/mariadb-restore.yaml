@@ -1,0 +1,18 @@
+{{- if and .Values.bebot.mariadb.enabled .Values.bebot.mariadb.restore.enabled }}
+{{- if not .Values.bebot.mariadb.backup.enabled }}
+  {{- fail "bebot.mariadb.restore.enabled requires bebot.mariadb.backup.enabled (there must be a Backup CR to restore from)" }}
+{{- end }}
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: {{ .Release.Name }}-mariadb-restore
+  namespace: {{ .Release.Namespace }}
+spec:
+  mariaDbRef:
+    name: {{ .Release.Name }}-mariadb
+  backupRef:
+    name: {{ .Release.Name }}-mariadb-backup
+  {{- if .Values.bebot.mariadb.restore.targetRecoveryTime }}
+  targetRecoveryTime: {{ .Values.bebot.mariadb.restore.targetRecoveryTime | quote }}
+  {{- end }}
+{{- end }}

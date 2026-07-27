@@ -1,0 +1,81 @@
+suite: mariadb databases (Database/User/Grant)
+templates:
+  - mariadb/mariadb-databases.yaml
+tests:
+  - it: renders a Database/User/Grant triplet for the default instance
+    asserts:
+      - hasDocuments:
+          count: 3
+      - isKind:
+          of: Database
+        documentIndex: 0
+      - isKind:
+          of: User
+        documentIndex: 1
+      - isKind:
+          of: Grant
+        documentIndex: 2
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: skips disabled instances
+    set:
+      bebot.instances:
+        - name: mybot
+          enabled: false
+          guildId: 0
+          mariadbUser: botuser
+          mariadbDatabase: botdb
+          ao_username: ao_account
+          bot_name: BotCharacter
+          dimension: "5"
+          raidbot: false
+          botOwner: OwnerCharacter
+          superAdmins: []
+          createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Database CR references the shared MariaDB CR and instance database name
+    asserts:
+      - equal:
+          path: spec.mariaDbRef.name
+          value: RELEASE-NAME-mariadb
+        documentIndex: 0
+      - equal:
+          path: spec.name
+          value: botdb
+        documentIndex: 0
+
+  - it: User CR points passwordSecretKeyRef at the instance's conf secret
+    asserts:
+      - equal:
+          path: spec.passwordSecretKeyRef.name
+          value: RELEASE-NAME-conf-mybot
+        documentIndex: 1
+      - equal:
+          path: spec.passwordSecretKeyRef.key
+          value: mariadb_password
+        documentIndex: 1
+
+  - it: Grant CR grants all privileges on the instance database to the instance user
+    asserts:
+      - equal:
+          path: spec.username
+          value: botuser
+        documentIndex: 2
+      - equal:
+          path: spec.database
+          value: botdb
+        documentIndex: 2
+      - equal:
+          path: spec.privileges
+          value:
+            - "ALL PRIVILEGES"
+        documentIndex: 2
