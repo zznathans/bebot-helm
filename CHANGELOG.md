@@ -1,3 +1,10 @@
+## [2.20.3](https://github.com/zznathans/bebot-helm/compare/2.20.2...2.20.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** stop relying on Helm lookup for Backup CR's S3 bucket/endpoint ([63de0d5](https://github.com/zznathans/bebot-helm/commit/63de0d535982da7ba3585470cfdd68c2dfdf66b4))
+
 ## [2.20.2](https://github.com/zznathans/bebot-helm/compare/2.20.1...2.20.2) (2026-07-27)
 
 
