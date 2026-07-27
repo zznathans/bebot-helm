@@ -38,11 +38,11 @@ Helm chart for bebot
 | bebot.mariadb.backup.pvc.accessMode | string | `"ReadWriteOnce"` | Access mode for the backup PVC. |
 | bebot.mariadb.backup.pvc.size | string | `"5Gi"` | Size of the PVC used to store backup dumps. |
 | bebot.mariadb.backup.pvc.storageClass | string | `""` | StorageClass for the backup PVC. Leave empty to use the cluster default. |
-| bebot.mariadb.backup.s3.bucket | string | `""` | S3 bucket name to upload dumps to. |
+| bebot.mariadb.backup.s3.bucket | unlike the credentials below | `""` | ; set it here even when s3.externalSecret.enabled is true. |
 | bebot.mariadb.backup.s3.credentialsSecret | string | `""` | Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below. |
-| bebot.mariadb.backup.s3.endpoint | string | `""` | at apply time, since the CRD field is a plain string with no secretKeyRef) and takes priority over this value. |
-| bebot.mariadb.backup.s3.externalSecret.enabled | bool | `false` | bucket/endpoint keys via `lookup` - on a brand new install the first apply may need re-running once it has synced. |
-| bebot.mariadb.backup.s3.externalSecret.secretName | string | `""` | Name of the secret in the external store to pull S3 credentials from. Required when enabled is true. The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64). |
+| bebot.mariadb.backup.s3.endpoint | string | `""` | external secret (the CRD field has no secretKeyRef) - set it directly even with s3.externalSecret.enabled. |
+| bebot.mariadb.backup.s3.externalSecret.enabled | bool | `false` | the secret named by credentialsSecret must already exist. |
+| bebot.mariadb.backup.s3.externalSecret.secretName | string | `""` | Name of the secret in the external store to pull S3 credentials from. Required when enabled is true. The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64). bucket_name/endpoint in this payload are unused by this chart now (see bucket/endpoint above) but are kept in the schema for compatibility with existing populated secrets. |
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup (default: 2am daily). |

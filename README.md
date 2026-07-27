@@ -96,12 +96,12 @@ A single mariadb-operator `Backup` CR, replacing the old dual CronJob (timestamp
 | `pvc.size` | string | `5Gi` | PVC size for backup storage. |
 | `pvc.storageClass` | string | `""` | StorageClass for backup PVC. |
 | `pvc.accessMode` | string | `ReadWriteOnce` | Access mode for backup PVC. |
-| `s3.bucket` | string | — | S3 bucket name. Required when `s3.externalSecret.enabled` is `false`; sourced from the external secret otherwise. |
+| `s3.bucket` | string | — | S3 bucket name. Always required — the underlying `Backup` CRD has no `secretKeyRef` for this field, so it can't be sourced from `s3.externalSecret` (only the credentials below can). |
 | `s3.region` | string | `us-east-1` | AWS region. |
-| `s3.endpoint` | string | `""` | Custom endpoint host, no scheme (MinIO, Backblaze, Cloudflare R2, etc.). Required by the underlying `Backup` CRD — defaults to `s3.<region>.amazonaws.com` when empty. When `s3.externalSecret.enabled` is `true`, the endpoint key from that secret is read at apply time instead (via a Helm `lookup`, since the CRD field has no `secretKeyRef`) and takes priority. |
+| `s3.endpoint` | string | `""` | Custom endpoint host, no scheme (MinIO, Backblaze, Cloudflare R2, etc.). Defaults to `s3.<region>.amazonaws.com` when empty. Like `bucket`, this can't be sourced from `s3.externalSecret` — set it directly even when that's enabled. |
 | `s3.path` | string | `backups/bebot` | Key prefix within the bucket. |
 | `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `s3.externalSecret.enabled` is `true`. |
-| `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret` from a dedicated external secret. The secret is identified by `s3.externalSecret.secretName`. |
+| `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret`'s access-key-id/secret-access-key from a dedicated external secret (bucket/endpoint are not sourced from it — set those directly, see above). The secret is identified by `s3.externalSecret.secretName`. |
 | `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `s3.externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
 
 ### `bebot.mariadb.restore`
