@@ -1,3 +1,10 @@
+## [2.20.4](https://github.com/zznathans/bebot-helm/compare/2.20.3...2.20.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** default Backup CR's S3 connection to TLS ([9044165](https://github.com/zznathans/bebot-helm/commit/9044165af752faeba34f446fa4292a1349641f5d))
+
 ## [2.20.3](https://github.com/zznathans/bebot-helm/compare/2.20.2...2.20.3) (2026-07-27)
 
 
