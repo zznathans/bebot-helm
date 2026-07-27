@@ -99,6 +99,7 @@ A single mariadb-operator `Backup` CR, replacing the old dual CronJob (timestamp
 | `s3.bucket` | string | — | S3 bucket name. Always required — the underlying `Backup` CRD has no `secretKeyRef` for this field, so it can't be sourced from `s3.externalSecret` (only the credentials below can). |
 | `s3.region` | string | `us-east-1` | AWS region. |
 | `s3.endpoint` | string | `""` | Custom endpoint host, no scheme (MinIO, Backblaze, Cloudflare R2, etc.). Defaults to `s3.<region>.amazonaws.com` when empty. Like `bucket`, this can't be sourced from `s3.externalSecret` — set it directly even when that's enabled. |
+| `s3.tls` | bool | `true` | Use TLS when connecting to the S3 endpoint. Almost always leave this `true` — the operator's S3 client defaults to plain HTTP otherwise, which most real providers (including Cloudflare R2) reject with a "301 Moved Permanently" redirect rather than serving the request. |
 | `s3.path` | string | `backups/bebot` | Key prefix within the bucket. |
 | `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `s3.externalSecret.enabled` is `true`. |
 | `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret`'s access-key-id/secret-access-key from a dedicated external secret (bucket/endpoint are not sourced from it — set those directly, see above). The secret is identified by `s3.externalSecret.secretName`. |

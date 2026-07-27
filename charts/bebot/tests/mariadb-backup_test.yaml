@@ -78,6 +78,22 @@ tests:
       - equal:
           path: spec.storage.s3.accessKeyIdSecretKeyRef.name
           value: my-s3-secret
+      # TLS defaults on - most providers (including Cloudflare R2) reject plain HTTP with a redirect.
+      - equal:
+          path: spec.storage.s3.tls.enabled
+          value: true
+
+  - it: allows disabling S3 TLS
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+      bebot.mariadb.backup.s3.tls: false
+    asserts:
+      - equal:
+          path: spec.storage.s3.tls.enabled
+          value: false
 
   - it: defaults the S3 endpoint using the configured region
     set:

@@ -47,6 +47,8 @@ spec:
       prefix: {{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" | quote }}
       region: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" | quote }}
       endpoint: {{ $s3Endpoint | quote }}
+      tls:
+        enabled: {{ .Values.bebot.mariadb.backup.s3.tls }}
       accessKeyIdSecretKeyRef:
         name: {{ $s3CredentialsSecret }}
         key: access-key-id
