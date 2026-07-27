@@ -35,7 +35,8 @@ bebot:
       size: 1Gi
       # -- StorageClass to use for the volume. Leave empty to use the cluster default.
       storageClass: ""
-    # -- MySQL root user name to create.
+    # -- MySQL root username. Informational only — the mariadb-operator's MariaDB CR always
+    # -- authenticates its root user as literally "root", so this is not actually configurable.
     rootUser: "root"
     # -- Host mask for the root user grant (% = allow from any host).
     rootHost: "%"
