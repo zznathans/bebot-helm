@@ -61,6 +61,12 @@ jobs:
         with:
           version: "3.17.0"
 
+      - name: Add mariadb-operator repo
+        run: helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/bebot
+
       - name: Run helm lint
         run: helm lint charts/bebot --strict
 
@@ -77,6 +83,12 @@ jobs:
 
       - name: Install helm-unittest plugin
         run: helm plugin install https://github.com/helm-unittest/helm-unittest --version v0.6.2
+
+      - name: Add mariadb-operator repo
+        run: helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/bebot
 
       - name: Run helm unit tests
         run: helm unittest charts/bebot
