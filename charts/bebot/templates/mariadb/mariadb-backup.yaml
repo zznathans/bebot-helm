@@ -12,6 +12,29 @@
   {{- end }}
 {{- end }}
 {{- $s3CredentialsSecret := .Values.bebot.mariadb.backup.s3.credentialsSecret | default (printf "%s-mariadb-backup-s3-creds" .Release.Name) }}
+{{- $s3Bucket := .Values.bebot.mariadb.backup.s3.bucket }}
+{{- $s3Endpoint := .Values.bebot.mariadb.backup.s3.endpoint }}
+{{- if and (eq $destination "s3") .Values.bebot.mariadb.backup.s3.externalSecret.enabled }}
+{{/*
+The Backup CRD's spec.storage.s3.bucket/endpoint are plain required strings - there's no
+secretKeyRef for them (only for the access key/secret key below) - so when the bucket/endpoint
+are meant to come from the external secret rather than values.yaml, the only way to get them
+into this static spec is to read the already-synced Secret at template time. This relies on the
+ExternalSecret (sync-wave "-1") having synced before this Backup CR (sync-wave "1") renders/applies.
+*/}}
+{{- $s3Secret := lookup "v1" "Secret" .Release.Namespace $s3CredentialsSecret }}
+{{- if and $s3Secret $s3Secret.data (index $s3Secret.data "bucket") }}
+{{- $s3Bucket = index $s3Secret.data "bucket" | b64dec }}
+{{- end }}
+{{- if and $s3Secret $s3Secret.data (index $s3Secret.data "endpoint") }}
+{{- $s3Endpoint = index $s3Secret.data "endpoint" | b64dec }}
+{{- end }}
+{{- end }}
+{{- if and (eq $destination "s3") (not $s3Endpoint) }}
+{{- $s3Endpoint = printf "s3.%s.amazonaws.com" (.Values.bebot.mariadb.backup.s3.region | default "us-east-1") }}
+{{- end }}
+{{- /* The CRD wants a bare host - strip a scheme if the secret/value included one. */}}
+{{- $s3Endpoint = $s3Endpoint | trimPrefix "https://" | trimPrefix "http://" }}
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
@@ -28,12 +51,10 @@ spec:
   storage:
     {{- if eq $destination "s3" }}
     s3:
-      bucket: {{ .Values.bebot.mariadb.backup.s3.bucket | quote }}
+      bucket: {{ $s3Bucket | quote }}
       prefix: {{ .Values.bebot.mariadb.backup.s3.path | default "backups/bebot" | quote }}
       region: {{ .Values.bebot.mariadb.backup.s3.region | default "us-east-1" | quote }}
-      {{- if .Values.bebot.mariadb.backup.s3.endpoint }}
-      endpoint: {{ .Values.bebot.mariadb.backup.s3.endpoint }}
-      {{- end }}
+      endpoint: {{ $s3Endpoint | quote }}
       accessKeyIdSecretKeyRef:
         name: {{ $s3CredentialsSecret }}
         key: access-key-id
