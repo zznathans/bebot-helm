@@ -1,3 +1,10 @@
+## [2.19.1](https://github.com/zznathans/bebot-helm/compare/2.19.0...2.19.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** stop advertise blurb from becoming one giant link ([f8e02af](https://github.com/zznathans/bebot-helm/commit/f8e02af1e73bec55593c93ff56a0a89ea5348ccb))
+
 # [2.19.0](https://github.com/zznathans/bebot-helm/compare/2.18.2...2.19.0) (2026-07-26)
 
 
