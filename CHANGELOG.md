@@ -1,3 +1,10 @@
+## [2.20.2](https://github.com/zznathans/bebot-helm/compare/2.20.1...2.20.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** make Backup CR's S3 endpoint always render, read via ExternalSecret ([4141395](https://github.com/zznathans/bebot-helm/commit/4141395bcaf81b46104e00f8b3d9231654ea920c))
+
 ## [2.20.1](https://github.com/zznathans/bebot-helm/compare/2.20.0...2.20.1) (2026-07-27)
 
 
