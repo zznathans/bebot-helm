@@ -24,7 +24,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-mariadb
+      app.kubernetes.io/instance: {{ .Release.Name }}-mariadb
   endpoints:
     - port: metrics
       interval: 30s

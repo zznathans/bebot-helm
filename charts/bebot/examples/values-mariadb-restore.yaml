@@ -1,0 +1,34 @@
+# Example: Restoring MariaDB from a Backup via the mariadb-operator
+#
+# Requires bebot.mariadb.backup.enabled (see examples/values-backup-pvc.yaml or
+# values-backup-s3.yaml) so there's a Backup CR to restore from, and the mariadb-operator
+# CRDs/controller present in the cluster — either installed separately, or pulled in as a
+# chart dependency by setting bebot.mariadbOperator.enabled: true (see below).
+#
+# Two restore paths:
+#
+# A) On-demand restore into the *existing*, already-running MariaDB instance:
+#      helm upgrade my-bebot . -f examples/values-mariadb-restore.yaml \
+#        --set bebot.mariadb.restore.enabled=true
+#    This applies a one-shot Restore CR. Once it completes, set restore.enabled back to
+#    false again before the next helm upgrade — it isn't meant to be left on permanently.
+#
+# B) Automatic disaster-recovery bootstrap: if the MariaDB CR/PVC is ever lost and
+#    recreated, bootstrapFrom seeds the brand-new instance from the latest Backup
+#    automatically, with no manual restore step. Has no effect on an already-existing
+#    instance, so it's safe to leave enabled permanently.
+
+bebot:
+  mariadbOperator:
+    # Set true if this cluster doesn't already run a shared copy of mariadb-operator, so this
+    # chart pulls it in (and its CRDs) as a toggleable dependency instead.
+    enabled: false
+
+  mariadb:
+    backup:
+      enabled: true
+    bootstrapFrom:
+      enabled: true
+    # restore:
+    #   enabled: true
+    #   targetRecoveryTime: "2023-12-19T09:00:00Z"   # optional: point-in-time instead of latest

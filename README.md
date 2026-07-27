@@ -7,9 +7,10 @@ Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy On
 ## Features
 
 - Deploy one or more bot instances from a single chart
-- Optional in-cluster shared MariaDB
+- Optional in-cluster shared MariaDB, managed via the [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator)'s `MariaDB`/`Database`/`User`/`Grant` CRs
 - Credentials via plain-text Helm values or GCP Secret Manager (ExternalSecrets)
-- S3-compatible or PVC-based database backups
+- S3-compatible or PVC-based database backups via the operator's `Backup` CR
+- On-demand restore (`Restore` CR) and automatic disaster-recovery bootstrap of a fresh MariaDB instance from the latest backup (`bootstrapFrom`)
 - NetworkPolicy to isolate MariaDB access
 - Checksum-based pod rollouts when config or secrets change
 
@@ -20,6 +21,7 @@ Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy On
 - Helm 3
 - Kubernetes 1.25+
 - [external-secrets operator](https://external-secrets.io) (only if using `createSecret: false`)
+- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller (only if `bebot.mariadb.enabled`, the default). Either install it once per cluster yourself (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`), or set `bebot.mariadbOperator.enabled: true` to pull it in as a toggleable dependency of this chart.
 
 ---
 
@@ -49,38 +51,47 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 | `secretStoreKind` | string | `ClusterSecretStore` | Kind of the secret store (`ClusterSecretStore` or `SecretStore`). |
 | `secretRefreshInterval` | string | `1h` | How often ExternalSecrets poll for updates. |
 
-### `bebot.mariadb`
-
-The chart deploys a **single shared MariaDB** instance. All bot instances connect to the same server; each gets its own database and user within it. There is no per-instance MariaDB option.
+### `bebot.mariadbOperator`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Deploy the shared in-cluster MariaDB. Set `false` to use an external database. |
-| `image` | string | `mariadb:11.4` | MariaDB container image. Used by the MariaDB deployment, init containers, and backup jobs. |
-| `persistence.enabled` | bool | `true` | Enable a PVC for MariaDB data. |
-| `persistence.size` | string | `1Gi` | PVC size. |
+| `enabled` | bool | `false` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Leave `false` if your cluster already runs a shared copy of the operator — enabling this installs cluster-scoped CRDs/RBAC alongside what would otherwise be a namespace-scoped release. |
+
+### `bebot.mariadb`
+
+The chart deploys a **single shared MariaDB** instance via the mariadb-operator's `MariaDB` custom resource. All bot instances connect to the same server; each gets its own database and user within it, declared via `Database`/`User`/`Grant` CRs. There is no per-instance MariaDB option.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `true` | Deploy the shared in-cluster MariaDB (as a `MariaDB` CR). Set `false` to use an external database. Requires the mariadb-operator CRDs/controller to be present in the cluster. |
+| `image` | string | `mariadb:11.4` | MariaDB container image, passed through to the `MariaDB` CR. |
+| `persistence.enabled` | bool | `true` | Use persistent storage for MariaDB data. If `false`, the `MariaDB` CR uses ephemeral storage. |
+| `persistence.size` | string | `1Gi` | Storage volume size. |
 | `persistence.storageClass` | string | `""` | StorageClass name. Empty uses cluster default. |
-| `persistence.accessMode` | string | `ReadWriteOnce` | PVC access mode. |
-| `rootUser` | string | `root` | MariaDB root username. |
+| `rootUser` | string | `root` | MariaDB root username (informational — the underlying image/operator always uses `root`). |
 | `rootHost` | string | `%` | Host mask for the root user grant. |
-| `dbSetupEnabled` | bool | `true` | Run an init container on first deploy to create each bot instance's database and user inside the shared MariaDB. |
 | `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead. Pulls `mariadb_root_password` and `mariadb_root_user` from `bebot.externalSecret`. |
+
+Each enabled bot instance gets a `Database`, `User`, and `Grant` CR (replacing the old init-container SQL bootstrap), reconciled continuously by the operator rather than run once.
 
 ### `bebot.mariadb.metrics`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Deploy a `prom/mysqld_exporter` sidecar and expose metrics on port 9104. |
-| `image` | string | `prom/mysqld-exporter:v0.16.0` | Container image for the mysqld_exporter sidecar. |
+| `enabled` | bool | `false` | Enable the `MariaDB` CR's built-in Prometheus exporter (`spec.metrics.enabled`) and expose metrics on port 9104. |
+| `image` | string | `""` | Container image for the operator-managed `mysqld_exporter`. Empty uses the operator's default. |
 | `grafanaDashboard.enabled` | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
 | `grafanaDashboard.label` | string | `grafana_dashboard` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |
 
 ### `bebot.mariadb.backup`
 
+A single mariadb-operator `Backup` CR, replacing the old dual CronJob (timestamped + snapshot) setup. Tighten `schedule` for a shorter RPO instead of running a second cadence.
+
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Enable the backup CronJob. |
+| `enabled` | bool | `false` | Enable the `Backup` CR. |
 | `schedule` | string | `0 2 * * *` | Cron schedule. |
+| `maxRetention` | string | `720h` | How long to retain backups, as a Go duration string. |
 | `destination` | string | `pvc` | Backup destination: `pvc` or `s3`. |
 | `pvc.size` | string | `5Gi` | PVC size for backup storage. |
 | `pvc.storageClass` | string | `""` | StorageClass for backup PVC. |
@@ -93,19 +104,23 @@ The chart deploys a **single shared MariaDB** instance. All bot instances connec
 | `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret` from a dedicated external secret. The secret is identified by `s3.externalSecret.secretName`. |
 | `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `s3.externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
 
-Backup dumps are gzip-compressed (`.sql.gz`).
+### `bebot.mariadb.restore`
 
-### `bebot.mariadb.backup.snapshot`
-
-A separate CronJob that dumps each database to a **fixed filename** (no timestamp), so each run overwrites the previous snapshot. Intended for short-term recovery, distinct from the timestamped long-term backups. Uses the same destination and S3 credentials as `bebot.mariadb.backup`.
+A one-shot mariadb-operator `Restore` CR that restores the **existing, live** MariaDB instance from a `Backup`. Requires `bebot.mariadb.backup.enabled`. Turn `enabled` on, `helm upgrade`, wait for it to complete, then turn it back off — it is not meant to be left on permanently.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Enable the snapshot CronJob. |
-| `intervalMinutes` | int | `15` | How often the snapshot runs, in minutes. |
-| `path` | string | `snapshots/bebot` | S3 key prefix for snapshot dumps. Ignored for PVC destination. |
+| `enabled` | bool | `false` | Trigger a restore into the live MariaDB instance. |
+| `targetRecoveryTime` | string | `""` | Optional RFC3339 timestamp to restore a specific point in time instead of the latest backup. |
 
-Snapshot dumps are gzip-compressed (`{db}_snapshot.sql.gz`) and stored separately from timestamped backups.
+### `bebot.mariadb.bootstrapFrom`
+
+Seeds a **brand-new** MariaDB instance automatically from the latest `Backup` at creation time (`spec.bootstrapFrom` on the `MariaDB` CR) — the disaster-recovery path if the MariaDB CR/PVC is ever lost and recreated. Requires `bebot.mariadb.backup.enabled`. Safe to leave enabled permanently: it has no effect on an already-existing instance.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | bool | `false` | Bootstrap a fresh MariaDB instance from the latest backup. |
+| `targetRecoveryTime` | string | `""` | Optional RFC3339 timestamp to bootstrap from a specific point in time instead of the latest backup. |
 
 ### `bebot`
 
@@ -255,7 +270,7 @@ When using `createSecret: false`, Kubernetes may try to start pods before the Ex
 
 ### ArgoCD (recommended)
 
-All ExternalSecret resources carry `argocd.argoproj.io/sync-wave: "-1"` and all Deployments/CronJobs carry `sync-wave: "1"`. ArgoCD waits for each wave's resources to be healthy before applying the next wave, and its built-in ExternalSecret health check waits for `Ready: True` — so Deployments are never created until secrets are synced.
+All ExternalSecret resources carry `argocd.argoproj.io/sync-wave: "-1"`, the `MariaDB`/`Backup` CRs and bot Deployments carry `sync-wave: "1"`, and the per-instance `Database`/`User`/`Grant` CRs carry `sync-wave: "2"`. ArgoCD waits for each wave's resources to be healthy before applying the next wave, and its built-in ExternalSecret health check waits for `Ready: True` — so nothing is created until the secrets and MariaDB instance it depends on are ready.
 
 ### Plain Helm
 
@@ -343,6 +358,7 @@ Ready-to-use values files are provided in the [`examples/`](examples/) directory
 | [`values-external-secrets.yaml`](charts/bebot/examples/values-external-secrets.yaml) | All credentials from GCP Secret Manager via ExternalSecrets |
 | [`values-backup-pvc.yaml`](charts/bebot/examples/values-backup-pvc.yaml) | Backup overlay — dump databases to a PVC |
 | [`values-backup-s3.yaml`](charts/bebot/examples/values-backup-s3.yaml) | Backup overlay — dump databases and sync to S3 |
+| [`values-mariadb-restore.yaml`](charts/bebot/examples/values-mariadb-restore.yaml) | Restore overlay — on-demand restore or automatic bootstrap-from-backup |
 
 The backup files are designed as overlays — layer them on top of a base values file:
 

@@ -1,0 +1,82 @@
+suite: mariadb CR
+templates:
+  - mariadb/mariadb.yaml
+tests:
+  - it: renders a single MariaDB CR by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isAPIVersion:
+          of: k8s.mariadb.com/v1alpha1
+      - isKind:
+          of: MariaDB
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-mariadb
+
+  - it: renders nothing when mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: uses the configured mariadb image
+    set:
+      bebot.mariadb.image: mariadb:10.11
+    asserts:
+      - equal:
+          path: spec.image
+          value: mariadb:10.11
+
+  - it: uses persistent storage sized from values by default
+    asserts:
+      - equal:
+          path: spec.storage.size
+          value: 1Gi
+      - notExists:
+          path: spec.storage.ephemeral
+
+  - it: uses ephemeral storage when persistence is disabled
+    set:
+      bebot.mariadb.persistence.enabled: false
+    asserts:
+      - equal:
+          path: spec.storage.ephemeral
+          value: true
+      - notExists:
+          path: spec.storage.size
+
+  - it: enables metrics when configured
+    set:
+      bebot.mariadb.metrics.enabled: true
+    asserts:
+      - equal:
+          path: spec.metrics.enabled
+          value: true
+
+  - it: does not enable metrics by default
+    asserts:
+      - notExists:
+          path: spec.metrics
+
+  - it: does not set bootstrapFrom by default
+    asserts:
+      - notExists:
+          path: spec.bootstrapFrom
+
+  - it: sets bootstrapFrom when enabled with backup enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.bootstrapFrom.enabled: true
+    asserts:
+      - equal:
+          path: spec.bootstrapFrom.backupRef.name
+          value: RELEASE-NAME-mariadb-backup
+
+  - it: fails when bootstrapFrom is enabled but backup is not
+    set:
+      bebot.mariadb.bootstrapFrom.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "bebot.mariadb.bootstrapFrom.enabled requires bebot.mariadb.backup.enabled (there must be a Backup CR to bootstrap from)"

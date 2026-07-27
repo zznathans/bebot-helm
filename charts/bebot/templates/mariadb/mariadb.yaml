@@ -1,0 +1,44 @@
+{{- if .Values.bebot.mariadb.enabled }}
+{{- if and .Values.bebot.mariadb.bootstrapFrom.enabled (not .Values.bebot.mariadb.backup.enabled) }}
+{{- fail "bebot.mariadb.bootstrapFrom.enabled requires bebot.mariadb.backup.enabled (there must be a Backup CR to bootstrap from)" }}
+{{- end }}
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: {{ .Release.Name }}-mariadb
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  image: {{ .Values.bebot.mariadb.image }}
+  replicas: 1
+  rootPasswordSecretKeyRef:
+    name: {{ .Release.Name }}-mariadb-root
+    key: root-password
+  port: 3306
+  storage:
+    {{- if .Values.bebot.mariadb.persistence.enabled }}
+    size: {{ .Values.bebot.mariadb.persistence.size | default "1Gi" }}
+    {{- if .Values.bebot.mariadb.persistence.storageClass }}
+    storageClassName: {{ .Values.bebot.mariadb.persistence.storageClass }}
+    {{- end }}
+    {{- else }}
+    ephemeral: true
+    {{- end }}
+  {{- if .Values.bebot.mariadb.metrics.enabled }}
+  metrics:
+    enabled: true
+    {{- if .Values.bebot.mariadb.metrics.image }}
+    exporter:
+      image: {{ .Values.bebot.mariadb.metrics.image }}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.bebot.mariadb.bootstrapFrom.enabled }}
+  bootstrapFrom:
+    backupRef:
+      name: {{ .Release.Name }}-mariadb-backup
+    {{- if .Values.bebot.mariadb.bootstrapFrom.targetRecoveryTime }}
+    targetRecoveryTime: {{ .Values.bebot.mariadb.bootstrapFrom.targetRecoveryTime | quote }}
+    {{- end }}
+  {{- end }}
+{{- end }}

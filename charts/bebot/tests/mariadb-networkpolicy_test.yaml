@@ -11,6 +11,10 @@ tests:
       - equal:
           path: metadata.name
           value: RELEASE-NAME-mariadb
+      - equal:
+          path: spec.podSelector.matchLabels
+          value:
+            app.kubernetes.io/instance: RELEASE-NAME-mariadb
 
   - it: renders nothing when mariadb is disabled
     set:
@@ -28,17 +32,41 @@ tests:
               matchLabels:
                 app: RELEASE-NAME-mybot
 
-  - it: adds backup pod selector to ingress when backup is enabled
+  - it: does not open ingress to the whole namespace by default
+    asserts:
+      - notContains:
+          path: spec.ingress[0].from
+          content:
+            podSelector: {}
+
+  - it: opens ingress to the whole namespace when backup is enabled
     set:
       bebot.mariadb.backup.enabled: true
-      bebot.mariadb.backup.destination: pvc
     asserts:
       - contains:
           path: spec.ingress[0].from
           content:
-            podSelector:
-              matchLabels:
-                app: RELEASE-NAME-mariadb-backup
+            podSelector: {}
+
+  - it: opens ingress to the whole namespace when restore is enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.restore.enabled: true
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector: {}
+
+  - it: opens ingress to the whole namespace when bootstrapFrom is enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.bootstrapFrom.enabled: true
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector: {}
 
   - it: adds metrics ingress rule when metrics are enabled
     set:
