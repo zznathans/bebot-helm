@@ -1,3 +1,10 @@
+## [2.20.5](https://github.com/zznathans/bebot-helm/compare/2.20.4...2.20.5) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** decouple Backup CR's ArgoCD sync-wave from bot provisioning ([f7b9e74](https://github.com/zznathans/bebot-helm/commit/f7b9e7492eed59861135594d5bb0423301510943))
+
 ## [2.20.4](https://github.com/zznathans/bebot-helm/compare/2.20.3...2.20.4) (2026-07-27)
 
 
