@@ -26,6 +26,11 @@ tests:
       - equal:
           path: metadata.name
           value: RELEASE-NAME-mariadb-backup
+      # Deliberately after the Database/User/Grant CRs (sync-wave "2") so a stuck/unhealthy
+      # Backup can never block bot provisioning - see the comment in the template.
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "3"
       - equal:
           path: spec.mariaDbRef.name
           value: RELEASE-NAME-mariadb
