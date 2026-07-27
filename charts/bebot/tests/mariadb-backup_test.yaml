@@ -110,7 +110,17 @@ tests:
       bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
     asserts:
       - failedTemplate:
-          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3" and externalSecret.enabled is false'
+          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3" (the operator''s Backup CRD has no way to source it from a Secret)'
+
+  - it: fails when destination is s3 but bucket is empty even with externalSecret enabled
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.externalSecret.enabled: true
+      bebot.mariadb.backup.s3.externalSecret.secretName: my-s3-secret
+    asserts:
+      - failedTemplate:
+          errorMessage: 'bebot.mariadb.backup.s3.bucket is required when destination is "s3" (the operator''s Backup CRD has no way to source it from a Secret)'
 
   - it: fails when destination is s3 but credentialsSecret is empty and externalSecret is disabled
     set:
@@ -121,15 +131,23 @@ tests:
       - failedTemplate:
           errorMessage: 'bebot.mariadb.backup.s3.credentialsSecret is required when destination is "s3" and externalSecret.enabled is false'
 
-  - it: does not fail when destination is s3 and externalSecret is enabled (bucket not required)
+  - it: does not fail when destination is s3, bucket/endpoint set, and externalSecret is enabled (only credentials sourced from it)
     set:
       bebot.mariadb.backup.enabled: true
       bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.endpoint: my-endpoint.example.com
       bebot.mariadb.backup.s3.externalSecret.enabled: true
       bebot.mariadb.backup.s3.externalSecret.secretName: my-s3-secret
     asserts:
       - hasDocuments:
           count: 1
+      - equal:
+          path: spec.storage.s3.bucket
+          value: my-bucket
+      - equal:
+          path: spec.storage.s3.endpoint
+          value: my-endpoint.example.com
 
   - it: fails when destination is an invalid value
     set:
