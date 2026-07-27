@@ -71,7 +71,11 @@ bebot:
         bucket: ""
         # -- AWS region (or region of your S3-compatible provider).
         region: "us-east-1"
-        # -- Optional: override endpoint URL for non-AWS providers (MinIO, Backblaze B2, etc.).
+        # -- Override endpoint host for non-AWS providers (MinIO, Backblaze B2, Cloudflare R2, etc.), without a scheme
+        # -- (e.g. "minio.example.com", not "https://minio.example.com" - a scheme prefix is stripped automatically).
+        # -- Required by the underlying Backup CRD; when left empty it defaults to "s3.<region>.amazonaws.com". When
+        # -- s3.externalSecret.enabled is true, the endpoint key from that secret is read directly (via a Helm `lookup`
+        # -- at apply time, since the CRD field is a plain string with no secretKeyRef) and takes priority over this value.
         endpoint: ""
         # -- Key prefix/path within the bucket where dumps are written.
         path: "backups/bebot"
@@ -79,6 +83,8 @@ bebot:
         credentialsSecret: ""
         externalSecret:
           # -- When true, create an ExternalSecret to populate credentialsSecret from an external secret. When false (default), the secret named by credentialsSecret must already exist.
+          # -- Note this Secret must already exist and be synced (from a prior release/apply) before the Backup CR can read its
+          # -- bucket/endpoint keys via `lookup` - on a brand new install the first apply may need re-running once it has synced.
           enabled: false
           # -- Name of the secret in the external store to pull S3 credentials from. Required when enabled is true.
           # The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64).

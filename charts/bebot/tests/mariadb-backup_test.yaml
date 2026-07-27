@@ -70,9 +70,38 @@ tests:
       - equal:
           path: spec.storage.s3.bucket
           value: my-bucket
+      # The CRD requires spec.storage.s3.endpoint - it must always render, even with no
+      # custom endpoint configured, or the operator rejects the whole Backup CR.
+      - equal:
+          path: spec.storage.s3.endpoint
+          value: s3.us-east-1.amazonaws.com
       - equal:
           path: spec.storage.s3.accessKeyIdSecretKeyRef.name
           value: my-s3-secret
+
+  - it: defaults the S3 endpoint using the configured region
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+      bebot.mariadb.backup.s3.region: eu-west-1
+    asserts:
+      - equal:
+          path: spec.storage.s3.endpoint
+          value: s3.eu-west-1.amazonaws.com
+
+  - it: strips a scheme from an explicit S3 endpoint
+    set:
+      bebot.mariadb.backup.enabled: true
+      bebot.mariadb.backup.destination: s3
+      bebot.mariadb.backup.s3.bucket: my-bucket
+      bebot.mariadb.backup.s3.credentialsSecret: my-s3-secret
+      bebot.mariadb.backup.s3.endpoint: "https://minio.example.com"
+    asserts:
+      - equal:
+          path: spec.storage.s3.endpoint
+          value: minio.example.com
 
   - it: fails when destination is s3 but bucket is empty
     set:
