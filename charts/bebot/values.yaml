@@ -78,6 +78,10 @@ bebot:
         # -- Defaults to "s3.<region>.amazonaws.com" when left empty. Like bucket, this can't be sourced from an
         # -- external secret (the CRD field has no secretKeyRef) - set it directly even with s3.externalSecret.enabled.
         endpoint: ""
+        # -- Use TLS when connecting to the S3 endpoint. Almost always leave this true - the operator's S3
+        # -- client defaults to plain HTTP otherwise, which most real providers (including Cloudflare R2)
+        # -- reject with a "301 Moved Permanently" redirect rather than actually serving the request.
+        tls: true
         # -- Key prefix/path within the bucket where dumps are written.
         path: "backups/bebot"
         # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.

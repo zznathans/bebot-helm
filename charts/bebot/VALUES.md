@@ -45,6 +45,7 @@ Helm chart for bebot
 | bebot.mariadb.backup.s3.externalSecret.secretName | string | `""` | Name of the secret in the external store to pull S3 credentials from. Required when enabled is true. The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64). bucket_name/endpoint in this payload are unused by this chart now (see bucket/endpoint above) but are kept in the schema for compatibility with existing populated secrets. |
 | bebot.mariadb.backup.s3.path | string | `"backups/bebot"` | Key prefix/path within the bucket where dumps are written. |
 | bebot.mariadb.backup.s3.region | string | `"us-east-1"` | AWS region (or region of your S3-compatible provider). |
+| bebot.mariadb.backup.s3.tls | bool | `true` | reject with a "301 Moved Permanently" redirect rather than actually serving the request. |
 | bebot.mariadb.backup.schedule | string | `"0 2 * * *"` | Cron schedule for the backup (default: 2am daily). |
 | bebot.mariadb.bootstrapFrom.enabled | bool | `false` | Requires bebot.mariadb.backup.enabled. Has no effect on an already-existing instance. |
 | bebot.mariadb.bootstrapFrom.targetRecoveryTime | string | `""` | Optional: bootstrap from a specific point in time (RFC3339) instead of the latest backup. |
