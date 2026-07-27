@@ -1,3 +1,10 @@
+## [2.20.1](https://github.com/zznathans/bebot-helm/compare/2.20.0...2.20.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **bot:** hardcode mariadb root-user secret key to "root" ([caf3a37](https://github.com/zznathans/bebot-helm/commit/caf3a3761adca0cfcf169c492dcdfc1f6d2c7b50))
+
 # [2.20.0](https://github.com/zznathans/bebot-helm/compare/2.19.1...2.20.0) (2026-07-27)
 
 
