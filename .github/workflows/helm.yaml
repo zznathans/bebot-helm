@@ -23,6 +23,16 @@ jobs:
           git config --global user.name "$GITHUB_ACTOR"
           git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - uses: azure/setup-helm@v5
+        with:
+          version: "3.17.0"
+
+      - name: Add mariadb-operator repo
+        run: helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+
+      - name: Build chart dependencies
+        run: helm dependency build charts/bebot
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
         with:
