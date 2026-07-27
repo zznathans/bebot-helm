@@ -21,7 +21,7 @@ Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy On
 - Helm 3
 - Kubernetes 1.25+
 - [external-secrets operator](https://external-secrets.io) (only if using `createSecret: false`)
-- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller (only if `bebot.mariadb.enabled`, the default). Either install it once per cluster yourself (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`), or set `bebot.mariadbOperator.enabled: true` to pull it in as a toggleable dependency of this chart.
+- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller (only if `bebot.mariadb.enabled`, the default). By default (`bebot.mariadbOperator.enabled: true`) this chart pulls it in as a dependency. If your cluster already runs a shared copy of the operator, set `bebot.mariadbOperator.enabled: false` and install/manage it separately instead (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`).
 
 ---
 
@@ -55,7 +55,7 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `false` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Leave `false` if your cluster already runs a shared copy of the operator — enabling this installs cluster-scoped CRDs/RBAC alongside what would otherwise be a namespace-scoped release. |
+| `enabled` | bool | `true` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Set `false` if your cluster already runs a shared copy of the operator, to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC. |
 
 ### `bebot.mariadb`
 

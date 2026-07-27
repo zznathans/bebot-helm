@@ -61,6 +61,6 @@ Helm chart for bebot
 | bebot.mariadb.restore.targetRecoveryTime | string | `""` | Optional: restore from a specific point in time (RFC3339, e.g. "2023-12-19T09:00:00Z") instead of the latest backup. |
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
 | bebot.mariadb.rootUser | string | `"root"` | MySQL root user name to create. |
-| bebot.mariadbOperator.enabled | bool | `false` | most multi-tenant clusters should install the operator once, separately, and leave this false. |
+| bebot.mariadbOperator.enabled | bool | `true` | false to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC. |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |

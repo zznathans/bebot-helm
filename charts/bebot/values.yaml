@@ -16,10 +16,10 @@ bebot:
 
   mariadbOperator:
     # -- Pull in the mariadb-operator and mariadb-operator-crds charts as dependencies of this
-    # -- chart (toggleable via Chart.yaml `condition`). Enable this only if your cluster doesn't
-    # -- already run a shared copy of the operator — it installs cluster-scoped CRDs/RBAC, so
-    # -- most multi-tenant clusters should install the operator once, separately, and leave this false.
-    enabled: false
+    # -- chart (toggleable via Chart.yaml `condition`). Enabled by default so the chart works
+    # -- out of the box. If your cluster already runs a shared copy of the operator, set this to
+    # -- false to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC.
+    enabled: true
 
   mariadb:
     # -- Deploy a MariaDB instance (via the mariadb-operator's MariaDB CR) as part of this chart.
