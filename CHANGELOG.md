@@ -1,3 +1,11 @@
+# [2.20.0](https://github.com/zznathans/bebot-helm/compare/2.19.1...2.20.0) (2026-07-27)
+
+
+### Features
+
+* **bot:** enable the mariadb-operator dependency by default ([78ab321](https://github.com/zznathans/bebot-helm/commit/78ab32136b8c67cf953d79a19deb3752334fd232))
+* **bot:** migrate MariaDB to mariadb-operator, add backup restore ([e16d43e](https://github.com/zznathans/bebot-helm/commit/e16d43e79f6aecb248fa15df706988fcae61c4e1))
+
 ## [2.19.1](https://github.com/zznathans/bebot-helm/compare/2.19.0...2.19.1) (2026-07-27)
 
 
