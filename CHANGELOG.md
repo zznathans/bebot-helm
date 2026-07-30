@@ -1,3 +1,10 @@
+## [2.25.1](https://github.com/zznathans/bebot-helm/compare/2.25.0...2.25.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to include LogDispatcher fix ([33a7b05](https://github.com/zznathans/bebot-helm/commit/33a7b054a527c873f1bd42fdb2fc6020bb89ead4)), closes [zznathans/BeBot#5](https://github.com/zznathans/BeBot/issues/5)
+
 # [2.25.0](https://github.com/zznathans/bebot-helm/compare/2.24.1...2.25.0) (2026-07-30)
 
 
