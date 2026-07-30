@@ -1,3 +1,10 @@
+# [2.26.0](https://github.com/zznathans/bebot-helm/compare/2.25.2...2.26.0) (2026-07-30)
+
+
+### Features
+
+* **chart:** skip installing mariadb-operator when mariadb is disabled ([bc485fa](https://github.com/zznathans/bebot-helm/commit/bc485fa856d8f7ac4c0303cae1f5d19a6e7bb009))
+
 ## [2.25.2](https://github.com/zznathans/bebot-helm/compare/2.25.1...2.25.2) (2026-07-30)
 
 
