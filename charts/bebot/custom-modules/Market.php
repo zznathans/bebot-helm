@@ -45,7 +45,7 @@ class Market extends BaseActiveModule
 		$this->help['command']['market user stats'] = "Show your own Market usage stats (ADMIN+ can pass a player name to check anyone)";
 		$this->help['command']['market help'] = "Show the Market module's in-game help pages";
 		$this->help['command']['market register'] = "Opt into Market notifications and set up your own watchlist";
-		$this->help['command']['market unregister'] = "Erase your registration, watchlist, and any queued notifications";
+		$this->help['command']['market unregister'] = "Erase your registration, watchlist, queued notifications, and usage stats (irreversible, requires confirmation)";
 
 		$this->bot->core("settings")
 			->create("Market", "Enabled", false, "Should the Market module respond to commands and track prices at all ?", "On;Off");
@@ -257,8 +257,8 @@ class Market extends BaseActiveModule
 		}
 		if (preg_match('/^(?:market|mkt)\s+register\s*$/i', $msg)) {
 			return $this->cmd_register($name);
-		} elseif (preg_match('/^(?:market|mkt)\s+unregister\s*$/i', $msg)) {
-			return $this->cmd_unregister($name);
+		} elseif (preg_match('/^(?:market|mkt)\s+unregister(?:\s+(confirm))?\s*$/i', $msg, $info)) {
+			return $this->cmd_unregister($name, isset($info[1]) && strtolower($info[1]) === "confirm");
 		} elseif (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
 			$this->log_action($name, "help");
 			return $this->show_help($name, trim($info[1]));
@@ -333,21 +333,32 @@ class Market extends BaseActiveModule
 			. $tools->chatcmd("market unwatch <aoid>", "market unwatch <aoid>") . " removes one, and "
 			. $tools->chatcmd("market watchlist", "market watchlist") . " lists what you're currently watching.\n\n";
 		$out .= "If you ever want out: " . $tools->chatcmd("market unregister", "market unregister")
-			. " erases your registration, your whole watchlist, and any notifications waiting for you -\n";
-		$out .= "it doesn't touch item price history, which isn't tied to any one player.\n";
+			. " erases your registration, your whole watchlist, any notifications waiting for you, and your usage stats -\n";
+		$out .= "it doesn't touch item price history, which isn't tied to any one player. It's irreversible, so it asks you to confirm first.\n";
 		return $tools->make_blob("Welcome to Market", $out);
 	}
 
 	/*
-	Erases everything this player opted into (registration, watchlist, queued tells) and turns
-	off the shared notify flag - but never touches market_user_actions (their usage-stats ledger
-	is a separate, non-notification concept and survives unregistering) or any item-level price
-	history/tracking, which isn't player-specific to begin with.
+	Erases everything this player opted into (registration, watchlist, queued tells, and their
+	usage-stats ledger in market_user_actions) plus turns off the shared notify flag. Destructive
+	and irreversible, so it's gated behind an explicit confirm step - see the make_blob() warning
+	panel below, same click-to-confirm pattern as AltsUi::add_alt()/confirm(). Never touches any
+	item-level price history/tracking, which isn't player-specific to begin with.
 	*/
-	function cmd_unregister($name)
+	function cmd_unregister($name, $confirmed = false)
 	{
 		if (!$this->is_registered($name)) {
 			return "You're not registered, so there's nothing to erase.";
+		}
+
+		$tools = $this->bot->core("tools");
+
+		if (!$confirmed) {
+			$inside = "##highlight##This cannot be undone.##end## Confirming will permanently erase your Market ";
+			$inside .= "registration, your entire watchlist, any notifications waiting for you, and all of your ";
+			$inside .= "recorded usage stats (market user stats).\n\n";
+			$inside .= $tools->chatcmd("market unregister confirm", "Confirm - erase everything");
+			return $tools->make_blob("Unregister from Market - Are you sure?", $inside);
 		}
 
 		$nameEsc = $this->bot->db->real_escape_string($name);
@@ -357,10 +368,10 @@ class Market extends BaseActiveModule
 		$this->bot->db->query("DELETE FROM #___market_subscriptions WHERE player = '" . $nameEsc . "'");
 		$this->bot->db->query("DELETE FROM #___market_pending_alerts WHERE player = '" . $nameEsc . "'");
 		$this->bot->db->query("DELETE FROM #___market_users WHERE player = '" . $nameEsc . "'");
+		$this->bot->db->query("DELETE FROM #___market_user_actions WHERE player = '" . $nameEsc . "'");
 		$this->bot->core("notify")->del($name);
-		$this->log_action($name, "unregister");
 
-		return "Unregistered. Removed " . $watchCount . " watchlist item(s) and any pending notifications. Your usage stats (market user stats) are unaffected.";
+		return "Unregistered. Removed " . $watchCount . " watchlist item(s), any pending notifications, and all of your usage stats.";
 	}
 
 	function log_action($player, $action, $aoid = null)
