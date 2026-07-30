@@ -160,6 +160,9 @@ bebot:
       log: "chat"                   # Logging level for the daily flat-text log files: all/chat/off. "chat" only writes GROUP/TELL/PGRP-tagged log calls (most module activity logging, e.g. Market's, is tagged otherwise and needs "all" to reach the log files). Console output and !log <category> (for calls made with write_to_db) are unaffected by this setting.
       logPath: "./log"              # Relative/absolute path for the daily flat-text log files.
       logTimestamp: "none"          # Timestamp prefix on log lines: datetime/date/time/none.
+      logConsoleFormat: "plain"     # Initial format for console output: plain/json. Only takes effect on this bot's first ever boot (seeds the Log.ConsoleFormat setting) - change afterwards via the in-game "!settings Log" command.
+      logFileFormat: "plain"        # Initial format for the daily rotating log file: plain/json. Only takes effect on first boot, see logConsoleFormat.
+      logSecurityFormat: "plain"    # Initial format for security.txt entries: plain/json. Only takes effect on first boot, see logConsoleFormat. The in-game security relay is always plain text regardless of this setting.
       # Controls how this instance's bot config secret is managed.
       # When true or unset: a K8s Secret is created directly by Helm using the values above (mariadbUser,
       #   mariadbPassword, mariadbDatabase, ao_password must be set in values).
