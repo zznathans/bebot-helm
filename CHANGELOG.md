@@ -1,3 +1,10 @@
+# [2.23.0](https://github.com/zznathans/bebot-helm/compare/2.22.0...2.23.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** add branch tracking and pull in JSON logging support ([d8dde66](https://github.com/zznathans/bebot-helm/commit/d8dde66dcdb8f7f8c28b5e05fdd2e9d424975768)), closes [#2](https://github.com/zznathans/bebot-helm/issues/2)
+
 # [2.22.0](https://github.com/zznathans/bebot-helm/compare/2.21.2...2.22.0) (2026-07-30)
 
 
