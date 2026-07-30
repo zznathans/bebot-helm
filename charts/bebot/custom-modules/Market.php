@@ -71,6 +71,8 @@ class Market extends BaseActiveModule
 			->create("Market", "AutoTrackLastSync", 0, "Internal: unix timestamp of the last successful auto-track resync - do not set manually");
 		$this->bot->core("settings")
 			->create("Market", "MaxSubscriptionsPerPlayer", 25, "Maximum number of items a single player can watch at once");
+		$this->bot->core("settings")
+			->create("Market", "LogToPrivateChannel", false, "Should Market activity (searches, watches, registrations, etc.) be broadcast to the bot's private channel ?", "On;Off");
 
 		$this->table();
 
@@ -370,19 +372,42 @@ class Market extends BaseActiveModule
 		$this->bot->db->query("DELETE FROM #___market_users WHERE player = '" . $nameEsc . "'");
 		$this->bot->db->query("DELETE FROM #___market_user_actions WHERE player = '" . $nameEsc . "'");
 		$this->bot->core("notify")->del($name);
+		$this->announce($name, "unregister");
 
 		return "Unregistered. Removed " . $watchCount . " watchlist item(s), any pending notifications, and all of your usage stats.";
 	}
 
 	function log_action($player, $action, $aoid = null)
 	{
-		$player = $this->bot->db->real_escape_string($player);
-		$action = $this->bot->db->real_escape_string($action);
+		$playerEsc = $this->bot->db->real_escape_string($player);
+		$actionEsc = $this->bot->db->real_escape_string($action);
 		$aoidSql = ($aoid === null) ? "NULL" : intval($aoid);
 		$this->bot->db->query(
 			"INSERT INTO #___market_user_actions (player, action, aoid, created_at) VALUES ('"
-				. $player . "', '" . $action . "', " . $aoidSql . ", " . time() . ")"
+				. $playerEsc . "', '" . $actionEsc . "', " . $aoidSql . ", " . time() . ")"
 		);
+		$this->announce($player, $action, $aoid);
+	}
+
+	/*
+	Broadcasts a Market activity line to the bot's private channel, gated by
+	Market.LogToPrivateChannel (off by default) - same opt-in pattern as Relay.Logoninpgroup
+	in Modules/Logon.php::show_logon(). Called from log_action() so every action tracked there
+	is covered automatically, plus directly from cmd_unregister() which bypasses log_action()
+	since it wipes its own ledger.
+	*/
+	function announce($player, $action, $aoid = null)
+	{
+		if (!$this->bot->core("settings")->get("Market", "LogToPrivateChannel")) {
+			return;
+		}
+		$label = str_replace("_", " ", $action);
+		$suffix = "";
+		if ($aoid !== null) {
+			$item = $this->bot->db->select("SELECT name FROM aorefs WHERE id = " . intval($aoid) . " LIMIT 1");
+			$suffix = !empty($item) ? (" (" . $item[0][0] . ")") : (" (AOID " . $aoid . ")");
+		}
+		$this->bot->send_pgroup($player . " used market " . $label . $suffix);
 	}
 
 	/*
