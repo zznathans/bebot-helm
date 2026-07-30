@@ -1,6 +1,7 @@
 {{- if .Values.bebot.mariadb.enabled }}
 {{- range .Values.bebot.instances }}
 {{- if ne .enabled false }}
+{{- if not .mariadbHost }}
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
@@ -46,6 +47,7 @@ spec:
   privileges:
     - "ALL PRIVILEGES"
 ---
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

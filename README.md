@@ -59,7 +59,7 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 
 ### `bebot.mariadb`
 
-The chart deploys a **single shared MariaDB** instance via the mariadb-operator's `MariaDB` custom resource. All bot instances connect to the same server; each gets its own database and user within it, declared via `Database`/`User`/`Grant` CRs. There is no per-instance MariaDB option.
+The chart deploys a **single shared MariaDB** instance via the mariadb-operator's `MariaDB` custom resource, used by default. All bot instances connect to this shared server unless they override `mariadbHost` (see `bebot.instances[]` below); instances using the shared server each get their own database and user within it, declared via `Database`/`User`/`Grant` CRs — an instance with `mariadbHost` set gets none of those CRs, since it isn't using the server this chart manages.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -145,6 +145,7 @@ Seeds a **brand-new** MariaDB instance automatically from the latest `Backup` at
 | `guildId` | int | Anarchy Online guild/org ID. |
 | `mariadbUser` | string | MySQL user for this instance. |
 | `mariadbDatabase` | string | MySQL database for this instance. |
+| `mariadbHost` | string | MySQL server host for this instance. Leave unset to use this release's shared in-cluster MariaDB (`<release>-mariadb`). Set to point this instance at a different/external MySQL-compatible server; when set, this chart won't create a `Database`/`User`/`Grant` CR for it. |
 | `ao_username` | string | AO account username. |
 | `bot_name` | string | In-game bot character name. |
 | `dimension` | string | AO dimension ID (`5` = Rubi-Ka). |
