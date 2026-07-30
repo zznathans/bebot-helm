@@ -150,6 +150,12 @@ bebot:
       #                               # this instance at a different/external MySQL-compatible server instead
       #                               # -- when set, this chart won't create a Database/User/Grant CR for it,
       #                               # since that server isn't the one this chart's mariadb-operator manages.
+      # mariadbPort: 3306            # MySQL port for this instance. Leave unset to use the default (3306).
+      # mariadbSsl: false            # Connect to mariadbHost over SSL/TLS. Required by most managed database
+      #                               # providers (e.g. DigitalOcean, AWS RDS) - set to true when using one.
+      # mariadbSslCa: ""             # Optional path (inside the bot container) to a CA certificate bundle to
+      #                               # verify the server's certificate against when mariadbSsl is true. Left
+      #                               # unset, the connection is still encrypted but the certificate isn't verified.
       ao_username: "ao_account"     # AO account username the bot logs in with.
       bot_name: "BotCharacter"      # In-game character name of the bot.
       dimension: "5"                # AO dimension/server ID (5 = RK5 / Rubi-Ka).
