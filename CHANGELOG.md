@@ -1,3 +1,10 @@
+# [2.25.0](https://github.com/zznathans/bebot-helm/compare/2.24.1...2.25.0) (2026-07-30)
+
+
+### Features
+
+* **mariadb:** support per-instance mariadbPort/mariadbSsl/mariadbSslCa ([bd13291](https://github.com/zznathans/bebot-helm/commit/bd13291368ce4fe15f4b7d3f31bbb044f2e0b01b)), closes [zznathans/BeBot#4](https://github.com/zznathans/BeBot/issues/4)
+
 ## [2.24.1](https://github.com/zznathans/bebot-helm/compare/2.24.0...2.24.1) (2026-07-30)
 
 
