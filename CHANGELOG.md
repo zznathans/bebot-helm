@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/zznathans/bebot-helm/compare/2.20.5...2.21.0) (2026-07-30)
+
+
+### Features
+
+* **market:** split status into fast overview + status details ([a989851](https://github.com/zznathans/bebot-helm/commit/a989851c44a809a5cc23fb0c6197d39cf58c6aea))
+
 ## [2.20.5](https://github.com/zznathans/bebot-helm/compare/2.20.4...2.20.5) (2026-07-27)
 
 
