@@ -13,8 +13,8 @@ dependencies:
   - name: mariadb-operator-crds
     version: "26.6.0"
     repository: "https://mariadb-operator.github.io/mariadb-operator"
-    condition: bebot.mariadbOperator.enabled
+    condition: bebot.mariadbOperator.enabled,bebot.mariadb.enabled
   - name: mariadb-operator
     version: "26.6.0"
     repository: "https://mariadb-operator.github.io/mariadb-operator"
-    condition: bebot.mariadbOperator.enabled
+    condition: bebot.mariadbOperator.enabled,bebot.mariadb.enabled
