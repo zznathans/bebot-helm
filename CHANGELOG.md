@@ -1,3 +1,10 @@
+## [2.23.1](https://github.com/zznathans/bebot-helm/compare/2.23.0...2.23.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **mariadb:** make per-instance mariadbHost a first-class, documented feature ([d276e2d](https://github.com/zznathans/bebot-helm/commit/d276e2dd72c2c54542730effa79869bd40feb0e6))
+
 # [2.23.0](https://github.com/zznathans/bebot-helm/compare/2.22.0...2.23.0) (2026-07-30)
 
 
