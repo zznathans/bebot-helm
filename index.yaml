@@ -2,6 +2,25 @@ apiVersion: v1
 entries:
   bebot:
   - apiVersion: v2
+    appVersion: 2.25.1
+    created: "2026-07-30T22:13:32.169385663Z"
+    dependencies:
+    - condition: bebot.mariadbOperator.enabled
+      name: mariadb-operator-crds
+      repository: https://mariadb-operator.github.io/mariadb-operator
+      version: 26.6.0
+    - condition: bebot.mariadbOperator.enabled
+      name: mariadb-operator
+      repository: https://mariadb-operator.github.io/mariadb-operator
+      version: 26.6.0
+    description: Helm chart for bebot
+    digest: 35611e73b4c951081abd21208bbcf0796d82ce08a9853bde373bc4ac303fd719
+    name: bebot
+    type: application
+    urls:
+    - https://github.com/zznathans/bebot-helm/releases/download/bebot-2.25.1/bebot-2.25.1.tgz
+    version: 2.25.1
+  - apiVersion: v2
     appVersion: 2.25.0
     created: "2026-07-30T21:39:32.731331935Z"
     dependencies:
@@ -907,4 +926,4 @@ entries:
     urls:
     - https://github.com/zznathans/bebot-helm/releases/download/bebot-1.0.2/bebot-1.0.2.tgz
     version: 1.0.2
-generated: "2026-07-30T21:39:32.731509674Z"
+generated: "2026-07-30T22:13:32.169598381Z"
