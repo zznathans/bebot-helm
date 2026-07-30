@@ -1,3 +1,10 @@
+## [2.24.1](https://github.com/zznathans/bebot-helm/compare/2.24.0...2.24.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to include Log.*Format seeding ([b247bfe](https://github.com/zznathans/bebot-helm/commit/b247bfec15da88a3b5ba42a7234fb14c0a7a639f)), closes [#3](https://github.com/zznathans/bebot-helm/issues/3) [#107](https://github.com/zznathans/bebot-helm/issues/107) [#4](https://github.com/zznathans/bebot-helm/issues/4)
+
 # [2.24.0](https://github.com/zznathans/bebot-helm/compare/2.23.1...2.24.0) (2026-07-30)
 
 
