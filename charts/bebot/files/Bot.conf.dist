@@ -39,6 +39,13 @@
   $log_path = "{{ .logPath | default "./log" }}";    // Relative/absolute path for log files
   $log_timestamp = "{{ .logTimestamp | default "none" }}";  // Valid options: datetime, date, time, none
 
+  // Initial values only for the Log.ConsoleFormat/FileFormat/SecurityFileFormat settings (plain/json).
+  // Once the bot has booted once and these settings exist in the database, these conf values are
+  // ignored - change the format afterwards via the in-game "!settings Log" command instead.
+  $log_console_format = "{{ .logConsoleFormat | default "plain" }}";
+  $log_file_format = "{{ .logFileFormat | default "plain" }}";
+  $log_security_format = "{{ .logSecurityFormat | default "plain" }}";
+
 
   /*
   The next two entries define a list of additional core and module directories to be loaded after the core/ and custom/core/
