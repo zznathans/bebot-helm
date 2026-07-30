@@ -1,3 +1,10 @@
+# [2.24.0](https://github.com/zznathans/bebot-helm/compare/2.23.1...2.24.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** expose Log.*Format seeding and fix Bot.conf value passthrough ([8c670d1](https://github.com/zznathans/bebot-helm/commit/8c670d1443c5d3efc13148749b046066901d4c11))
+
 ## [2.23.1](https://github.com/zznathans/bebot-helm/compare/2.23.0...2.23.1) (2026-07-30)
 
 
