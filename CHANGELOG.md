@@ -1,3 +1,10 @@
+## [2.21.2](https://github.com/zznathans/bebot-helm/compare/2.21.1...2.21.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** point BeBot submodule at zznathans/BeBot fork ([80e8053](https://github.com/zznathans/bebot-helm/commit/80e805307f9b40d2a3edc5c5cef87e4780d0b0f5))
+
 ## [2.21.1](https://github.com/zznathans/bebot-helm/compare/2.21.0...2.21.1) (2026-07-30)
 
 
