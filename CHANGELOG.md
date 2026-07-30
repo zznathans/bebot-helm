@@ -1,3 +1,10 @@
+## [2.25.2](https://github.com/zznathans/bebot-helm/compare/2.25.1...2.25.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to fix access_control migration ([b794561](https://github.com/zznathans/bebot-helm/commit/b7945619a96038ff006ff6179f3487f7c54326f5)), closes [zznathans/BeBot#6](https://github.com/zznathans/BeBot/issues/6)
+
 ## [2.25.1](https://github.com/zznathans/bebot-helm/compare/2.25.0...2.25.1) (2026-07-30)
 
 
