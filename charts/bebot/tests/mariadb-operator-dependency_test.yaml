@@ -1,0 +1,33 @@
+suite: mariadb-operator dependency condition
+templates:
+  - charts/mariadb-operator/templates/*
+  - charts/mariadb-operator-crds/templates/*
+tests:
+  - it: installs the operator by default (mariadb.enabled defaults true, mariadbOperator.enabled unset)
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/mariadb-operator/templates/operator/deployment.yaml
+
+  - it: skips the operator entirely when mariadb is disabled and mariadbOperator.enabled is left unset
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: skips the operator entirely when explicitly disabled, even with mariadb.enabled true
+    set:
+      bebot.mariadbOperator.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: installs the operator when explicitly enabled, even with mariadb.enabled false
+    set:
+      bebot.mariadb.enabled: false
+      bebot.mariadbOperator.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/mariadb-operator/templates/operator/deployment.yaml

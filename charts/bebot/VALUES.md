@@ -35,6 +35,7 @@ Helm chart for bebot
 | bebot.instances[0].name | string | `"mybot"` |  |
 | bebot.instances[0].raidbot | bool | `false` |  |
 | bebot.instances[0].superAdmins[0] | string | `"AdminCharacter"` |  |
+| bebot.mariadb | object | `{"backup":{"destination":"pvc","enabled":false,"maxRetention":"720h","pvc":{"accessMode":"ReadWriteOnce","size":"5Gi","storageClass":""},"s3":{"bucket":"","credentialsSecret":"","endpoint":"","externalSecret":{"enabled":false,"secretName":""},"path":"backups/bebot","region":"us-east-1","tls":true},"schedule":"0 2 * * *"},"bootstrapFrom":{"enabled":false,"targetRecoveryTime":""},"enabled":true,"image":"mariadb:11.4","metrics":{"enabled":false,"grafanaDashboard":{"enabled":false,"label":"grafana_dashboard"},"image":""},"persistence":{"enabled":true,"size":"1Gi","storageClass":""},"restore":{"enabled":false,"targetRecoveryTime":""},"rootHost":"%","rootUser":"root"}` | regardless of bebot.mariadb.enabled. enabled: true |
 | bebot.mariadb.backup.destination | string | `"pvc"` | Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` uploads to an S3-compatible bucket. |
 | bebot.mariadb.backup.enabled | bool | `false` | Enable a mariadb-operator Backup CR to periodically dump each database. |
 | bebot.mariadb.backup.maxRetention | string | `"720h"` | How long to retain backups for, as a Go duration string (e.g. "720h" = 30 days). |
@@ -65,6 +66,6 @@ Helm chart for bebot
 | bebot.mariadb.restore.targetRecoveryTime | string | `""` | Optional: restore from a specific point in time (RFC3339, e.g. "2023-12-19T09:00:00Z") instead of the latest backup. |
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
 | bebot.mariadb.rootUser | string | `"root"` | authenticates its root user as literally "root", so this is not actually configurable. |
-| bebot.mariadbOperator.enabled | bool | `true` | false to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC. |
+| bebot.mariadbOperator | string | `nil` |  |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
