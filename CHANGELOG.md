@@ -1,3 +1,10 @@
+## [2.21.1](https://github.com/zznathans/bebot-helm/compare/2.21.0...2.21.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **market:** require confirmation for unregister and wipe stats ([6ada6db](https://github.com/zznathans/bebot-helm/commit/6ada6db45cc67dec56106663a2857f90783b720b))
+
 # [2.21.0](https://github.com/zznathans/bebot-helm/compare/2.20.5...2.21.0) (2026-07-30)
 
 
