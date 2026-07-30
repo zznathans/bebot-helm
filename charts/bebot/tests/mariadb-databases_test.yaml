@@ -42,6 +42,26 @@ tests:
       - hasDocuments:
           count: 0
 
+  - it: skips instances that override mariadbHost, since they don't use the shared MariaDB CR
+    set:
+      bebot.instances:
+        - name: mybot
+          enabled: true
+          guildId: 0
+          mariadbUser: botuser
+          mariadbDatabase: botdb
+          mariadbHost: external-mysql.example.com
+          ao_username: ao_account
+          bot_name: BotCharacter
+          dimension: "5"
+          raidbot: false
+          botOwner: OwnerCharacter
+          superAdmins: []
+          createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
   - it: Database CR references the shared MariaDB CR and instance database name
     asserts:
       - equal:
