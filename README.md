@@ -21,7 +21,7 @@ Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy On
 - Helm 3
 - Kubernetes 1.25+
 - [external-secrets operator](https://external-secrets.io) (only if using `createSecret: false`)
-- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller (only if `bebot.mariadb.enabled`, the default). By default (`bebot.mariadbOperator.enabled: true`) this chart pulls it in as a dependency. If your cluster already runs a shared copy of the operator, set `bebot.mariadbOperator.enabled: false` and install/manage it separately instead (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`).
+- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller, pulled in as a dependency automatically whenever `bebot.mariadb.enabled` is true (the default) and skipped when it's false. If your cluster already runs a shared copy of the operator, set `bebot.mariadbOperator.enabled: false` and install/manage it separately instead (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`).
 
 ---
 
@@ -55,7 +55,7 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Set `false` if your cluster already runs a shared copy of the operator, to avoid installing a second, redundant copy of its cluster-scoped CRDs/RBAC. |
+| `enabled` | bool | follows `bebot.mariadb.enabled` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Left unset, the operator is installed automatically when `bebot.mariadb.enabled` is true and skipped when it's false (nothing else in this chart uses the operator's CRDs). Set explicitly to override: `false` to reuse a cluster-shared operator instead of installing a second, redundant copy even with `bebot.mariadb.enabled: true`; `true` to install it regardless of `bebot.mariadb.enabled`. |
 
 ### `bebot.mariadb`
 
