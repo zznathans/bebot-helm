@@ -37,7 +37,8 @@ class Market extends BaseActiveModule
 		$this->help['description'] = "Market overview: search for an item and see a summary, price history and live orders.";
 		$this->help['command']['market <item name>'] = "Search for an item by (partial) name";
 		$this->help['command']['market <aoid>'] = "Show the full market overview for a specific item ID";
-		$this->help['command']['market status'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
+		$this->help['command']['market status'] = "Show an overview of market tracking (settings, item counts) without listing every item";
+		$this->help['command']['market status details'] = "Show every item currently tracked, its source (auto/manual) and last-updated time";
 		$this->help['command']['market watch <item>'] = "Get a tell when a new order is posted for an item (requires !market register first)";
 		$this->help['command']['market unwatch <aoid>'] = "Stop watching an item";
 		$this->help['command']['market watchlist'] = "List everything on your personal watchlist";
@@ -261,6 +262,9 @@ class Market extends BaseActiveModule
 		} elseif (preg_match('/^(?:market|mkt)\s+help\s*(.*)$/i', $msg, $info)) {
 			$this->log_action($name, "help");
 			return $this->show_help($name, trim($info[1]));
+		} elseif (preg_match('/^(?:market|mkt)\s+status\s+details\s*$/i', $msg)) {
+			$this->log_action($name, "status details");
+			return $this->show_status_details();
 		} elseif (preg_match('/^(?:market|mkt)\s+status\s*$/i', $msg)) {
 			$this->log_action($name, "status");
 			return $this->show_status();
@@ -285,7 +289,7 @@ class Market extends BaseActiveModule
 			$this->log_action($name, "search");
 			return $this->search_items(trim($info[1]));
 		} else {
-			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market register  or  market watch <item>  or  market unwatch <aoid>  or  market watchlist  or  market user stats  or  market help";
+			return "Usage: market <item name>  or  market <aoid>  or  market status  or  market status details  or  market register  or  market watch <item>  or  market unwatch <aoid>  or  market watchlist  or  market user stats  or  market help";
 		}
 	}
 
@@ -478,9 +482,12 @@ class Market extends BaseActiveModule
 		$tools = $this->bot->core("tools");
 		$out = "__________Tracking Status_________\n\n";
 		$out .= "market status\n";
-		$out .= "  Lists every item currently tracked for price history: [Auto] for one of the most\n";
-		$out .= "  actively-traded items (resynced from ao-stonks.com), [Manual] for something someone\n";
-		$out .= "  looked up or watched, and when it was last polled.\n\n";
+		$out .= "  Shows an overview of price-history tracking: current settings and how many items\n";
+		$out .= "  are tracked, broken down into [Auto] (one of the most actively-traded items, resynced\n";
+		$out .= "  from ao-stonks.com) vs [Manual] (something someone looked up or watched).\n\n";
+		$out .= "market status details\n";
+		$out .= "  Lists every individual tracked item and when it was last polled. Slower than\n";
+		$out .= "  market status since it has to list every item, so use it only when you need the detail.\n\n";
 		$out .= "[" . $tools->chatcmd("market help", "Back to Market Help") . "]";
 		return $tools->make_blob("Market Help: Tracking Status", $out);
 	}
@@ -1293,13 +1300,37 @@ class Market extends BaseActiveModule
 		$out .= "History retention  : " . $this->bot->core("settings")->get("Market", "HistoryRetentionDays") . " days\n";
 		$out .= "\n";
 
+		$counts = $this->bot->db->select(
+			"SELECT COUNT(*), SUM(auto_tracked), SUM(last_polled = 0), MAX(last_polled) FROM #___market_watch"
+		);
+		list($total, $autoCount, $neverPolled, $lastPolledMax) = $counts[0];
+		$total = intval($total);
+		if ($total === 0) {
+			$out .= "No items are currently tracked.\n";
+			return $this->bot->core("tools")->make_blob("Market Status", $out);
+		}
+		$autoCount = intval($autoCount);
+		$manualCount = $total - $autoCount;
+		$neverPolled = intval($neverPolled);
+		$lastPolledMax = intval($lastPolledMax);
+		$lastPolledText = ($lastPolledMax > 0) ? $this->bot->core("time")->format_seconds(time() - $lastPolledMax) . " ago" : "never";
+
+		$out .= "__________Tracked Items Overview_________\n";
+		$out .= $total . " item(s) tracked : " . $autoCount . " auto-tracked, " . $manualCount . " manually watched\n";
+		$out .= $neverPolled . " item(s) never polled yet\n";
+		$out .= "Most recent poll   : " . $lastPolledText . "\n";
+		$out .= "\nUse " . $this->bot->core("tools")->chatcmd("market status details", "market status details") . " to list every tracked item.\n";
+		return $this->bot->core("tools")->make_blob("Market Status", $out);
+	}
+
+	function show_status_details()
+	{
 		$rows = $this->bot->db->select(
 			"SELECT aoid, name, ql, icon, auto_tracked, first_seen, last_polled FROM #___market_watch"
 			. " ORDER BY auto_tracked DESC, last_polled DESC LIMIT 500"
 		);
 		if (empty($rows)) {
-			$out .= "No items are currently tracked.\n";
-			return $this->bot->core("tools")->make_blob("Market Status", $out);
+			return $this->bot->core("tools")->make_blob("Market Status Details", "No items are currently tracked.\n");
 		}
 
 		$now = time();
@@ -1315,8 +1346,8 @@ class Market extends BaseActiveModule
 				. $this->bot->core("tools")->chatcmd("market " . $aoid, "Overview") . "]\n";
 		}
 
-		$out .= count($rows) . " tracked item(s) :\n\n" . $inside;
-		return $this->bot->core("tools")->make_blob("Market Status", $out);
+		$out = count($rows) . " tracked item(s) :\n\n" . $inside;
+		return $this->bot->core("tools")->make_blob("Market Status Details", $out);
 	}
 }
 ?>
