@@ -1,3 +1,10 @@
+## [2.26.1](https://github.com/zznathans/bebot-helm/compare/2.26.0...2.26.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to fix MyISAM table creation ([282faa8](https://github.com/zznathans/bebot-helm/commit/282faa8c880e33c9c41ff08b1d7ab749c8311df2)), closes [zznathans/BeBot#7](https://github.com/zznathans/BeBot/issues/7)
+
 # [2.26.0](https://github.com/zznathans/bebot-helm/compare/2.25.2...2.26.0) (2026-07-30)
 
 
