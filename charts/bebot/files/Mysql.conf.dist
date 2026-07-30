@@ -20,6 +20,33 @@
   $server = "{{ .mariadbHost }}";
 
   /*
+  Database port. Leave unset (default) to use the client library default (3306). Set
+  mariadbPort in your instance values to override this, e.g. for a managed database
+  provider that listens on a non-standard port.
+  */
+{{- if .mariadbPort }}
+  $port = {{ .mariadbPort }};
+{{- end }}
+
+  /*
+  Connect over SSL/TLS - required by most managed database providers. Set mariadbSsl: true
+  in your instance values to enable it.
+  */
+{{- if .mariadbSsl }}
+  $ssl = true;
+{{- end }}
+
+  /*
+  Optional path to a CA certificate bundle to verify the server's certificate against when
+  mariadbSsl is true. Left unset, the connection is still encrypted but the server
+  certificate is not verified. Set mariadbSslCa in your instance values to a path mounted
+  into the bot container for full verification.
+  */
+{{- if .mariadbSslCa }}
+  $ssl_ca = "{{ .mariadbSslCa }}";
+{{- end }}
+
+  /*
   Database table prefix.
   The bot will use <botname> as prefix by default. Set tablePrefix in your
   instance values to override this, or set it to an empty string for no prefix.

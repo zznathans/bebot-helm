@@ -146,6 +146,9 @@ Seeds a **brand-new** MariaDB instance automatically from the latest `Backup` at
 | `mariadbUser` | string | MySQL user for this instance. |
 | `mariadbDatabase` | string | MySQL database for this instance. |
 | `mariadbHost` | string | MySQL server host for this instance. Leave unset to use this release's shared in-cluster MariaDB (`<release>-mariadb`). Set to point this instance at a different/external MySQL-compatible server; when set, this chart won't create a `Database`/`User`/`Grant` CR for it. |
+| `mariadbPort` | int | MySQL port for this instance. Leave unset to use the default (3306). |
+| `mariadbSsl` | bool | Connect to `mariadbHost` over SSL/TLS. Required by most managed database providers (DigitalOcean, AWS RDS, etc). Requires a bot image built from a BeBot version with SSL support (`$ssl`/`$ssl_ca` in `Mysql.conf`). |
+| `mariadbSslCa` | string | Optional path (inside the bot container) to a CA certificate bundle to verify the server's certificate against when `mariadbSsl` is true. Left unset, the connection is still encrypted but the certificate isn't verified. |
 | `ao_username` | string | AO account username. |
 | `bot_name` | string | In-game bot character name. |
 | `dimension` | string | AO dimension ID (`5` = Rubi-Ka). |
