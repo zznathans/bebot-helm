@@ -1,3 +1,10 @@
+## [2.26.2](https://github.com/zznathans/bebot-helm/compare/2.26.1...2.26.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to fix DbLogHandler null-db crash ([ae997c3](https://github.com/zznathans/bebot-helm/commit/ae997c3403299682e529df08cb8df2ac24d4c382)), closes [zznathans/BeBot#8](https://github.com/zznathans/BeBot/issues/8)
+
 ## [2.26.1](https://github.com/zznathans/bebot-helm/compare/2.26.0...2.26.1) (2026-07-30)
 
 
