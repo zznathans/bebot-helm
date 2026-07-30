@@ -1,3 +1,10 @@
+# [2.22.0](https://github.com/zznathans/bebot-helm/compare/2.21.2...2.22.0) (2026-07-30)
+
+
+### Features
+
+* **market:** broadcast activity to the private channel ([7c754d5](https://github.com/zznathans/bebot-helm/commit/7c754d50c444aae7505a6367907b0dc3a17c8652))
+
 ## [2.21.2](https://github.com/zznathans/bebot-helm/compare/2.21.1...2.21.2) (2026-07-30)
 
 
