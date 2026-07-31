@@ -1,3 +1,10 @@
+# [2.27.0](https://github.com/zznathans/bebot-helm/compare/2.26.3...2.27.0) (2026-07-31)
+
+
+### Features
+
+* **chart:** add optional shared Redis cache for bot instances ([cce54e2](https://github.com/zznathans/bebot-helm/commit/cce54e2c6ed22fc2ec8c9740ee9969a926ce8d8a))
+
 ## [2.26.3](https://github.com/zznathans/bebot-helm/compare/2.26.2...2.26.3) (2026-07-31)
 
 
