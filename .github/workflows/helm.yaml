@@ -30,6 +30,9 @@ jobs:
       - name: Add mariadb-operator repo
         run: helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 
+      - name: Add redis-operator repo
+        run: helm repo add redis-operator https://ot-container-kit.github.io/helm-charts/
+
       - name: Build chart dependencies
         run: helm dependency build charts/bebot
 
