@@ -7,7 +7,6 @@ RUN apk --no-cache add \
     ln -sf /usr/bin/php85 /usr/bin/php && \
     addgroup -S bebot && adduser -S -G bebot -u 1000 bebot
 COPY vendor/BeBot /BeBot
-COPY custom-modules/ /BeBot/Custom/Modules/
 COPY docker-entrypoint.sh /BeBot/docker-entrypoint.sh
 RUN chmod +x /BeBot/docker-entrypoint.sh && chown -R bebot:bebot /BeBot
 WORKDIR /BeBot
