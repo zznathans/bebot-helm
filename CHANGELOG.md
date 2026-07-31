@@ -1,3 +1,10 @@
+## [2.27.2](https://github.com/zznathans/bebot-helm/compare/2.27.1...2.27.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for market bulk unwatch ([4b69671](https://github.com/zznathans/bebot-helm/commit/4b69671fd4ad603be9bf950c9fb0ed97d0af8e76))
+
 ## [2.27.1](https://github.com/zznathans/bebot-helm/compare/2.27.0...2.27.1) (2026-07-31)
 
 
