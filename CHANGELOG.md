@@ -1,3 +1,10 @@
+## [2.27.1](https://github.com/zznathans/bebot-helm/compare/2.27.0...2.27.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **chart:** republish the Helm chart after the 2.27.0 publish failure ([cdcbff9](https://github.com/zznathans/bebot-helm/commit/cdcbff913559075acff9c02c4e9d1daddc7802a4))
+
 # [2.27.0](https://github.com/zznathans/bebot-helm/compare/2.26.3...2.27.0) (2026-07-31)
 
 
