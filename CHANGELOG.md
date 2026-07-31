@@ -1,3 +1,10 @@
+## [2.27.3](https://github.com/zznathans/bebot-helm/compare/2.27.2...2.27.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for market untrack all ([70c5b88](https://github.com/zznathans/bebot-helm/commit/70c5b88334d8a08f6377a93599849be3b3075513))
+
 ## [2.27.2](https://github.com/zznathans/bebot-helm/compare/2.27.1...2.27.2) (2026-07-31)
 
 
