@@ -1,3 +1,10 @@
+## [2.27.4](https://github.com/zznathans/bebot-helm/compare/2.27.3...2.27.4) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for market background logging ([b0353c5](https://github.com/zznathans/bebot-helm/commit/b0353c53af05319e0819eae66fadac29f953ca69))
+
 ## [2.27.3](https://github.com/zznathans/bebot-helm/compare/2.27.2...2.27.3) (2026-07-31)
 
 
