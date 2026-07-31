@@ -122,6 +122,46 @@ bebot:
     #             from the upstream secret defined at bebot.externalSecret.
     # createSecret: true
 
+  redisOperator:
+    # -- Pull in the redis-operator chart as a dependency of this chart. Left unset (the
+    # -- default), this follows bebot.redis.enabled. Set this explicitly to override that
+    # -- default in either direction: false to reuse a cluster-shared redis-operator instead
+    # -- of installing a second, redundant copy (even with bebot.redis.enabled: true); true
+    # -- to install it regardless of bebot.redis.enabled.
+    # enabled: true
+
+  redis:
+    # -- Deploy a shared Redis instance (via the redis-operator's Redis CR) that all bot
+    # -- instances use as an optional cache for slow-changing data (e.g. nickname->uid
+    # -- lookups). This is a pure cache with no source-of-truth data - the bot always falls
+    # -- back to the database when Redis is disabled or unreachable, so this is safe to
+    # -- toggle at any time. Requires the redis-operator CRDs/controller to already be
+    # -- present in the cluster (see bebot.redisOperator.enabled).
+    enabled: false
+    # -- Container image for Redis, passed through to the Redis CR.
+    image: "quay.io/opstree/redis:v7.0.15"
+    # -- Resource requests and limits for the Redis CR's pod.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    persistence:
+      # -- Enable persistent storage for Redis data. If false, an empty cache is fine to lose
+      # -- on pod restart since nothing but the DB fallback depends on it.
+      enabled: true
+      # -- Size of the Redis CR's storage volume.
+      size: 1Gi
+      # -- StorageClass to use for the volume. Leave empty to use the cluster default.
+      storageClass: ""
+    metrics:
+      # -- Enable the redis-operator's built-in Prometheus exporter sidecar.
+      enabled: false
+      # -- Container image for the redis-exporter sidecar. Leave empty to use the operator's default.
+      image: ""
+
   # -- Container image registry and repository for the bebot image.
   imageRepository: ghcr.io/zznathans/bebot-helm
   # -- Image tag to deploy. Use a specific digest or tag in production for reproducibility.

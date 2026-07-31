@@ -18,3 +18,7 @@ dependencies:
     version: "26.6.0"
     repository: "https://mariadb-operator.github.io/mariadb-operator"
     condition: bebot.mariadbOperator.enabled,bebot.mariadb.enabled
+  - name: redis-operator
+    version: "0.24.0"
+    repository: "https://ot-container-kit.github.io/helm-charts/"
+    condition: bebot.redisOperator.enabled,bebot.redis.enabled

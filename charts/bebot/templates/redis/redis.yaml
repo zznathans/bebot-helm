@@ -1,0 +1,33 @@
+{{- if .Values.bebot.redis.enabled }}
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: Redis
+metadata:
+  name: {{ .Release.Name }}-redis
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  kubernetesConfig:
+    image: {{ .Values.bebot.redis.image }}
+    resources: {{- toYaml .Values.bebot.redis.resources | nindent 6 }}
+  {{- if .Values.bebot.redis.persistence.enabled }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+        {{- if .Values.bebot.redis.persistence.storageClass }}
+        storageClassName: {{ .Values.bebot.redis.persistence.storageClass }}
+        {{- end }}
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.bebot.redis.persistence.size | default "1Gi" }}
+  {{- end }}
+  {{- if .Values.bebot.redis.metrics.enabled }}
+  redisExporter:
+    enabled: true
+    {{- if .Values.bebot.redis.metrics.image }}
+    image: {{ .Values.bebot.redis.metrics.image }}
+    {{- end }}
+  {{- end }}
+{{- end }}

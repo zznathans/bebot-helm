@@ -67,5 +67,15 @@ Helm chart for bebot
 | bebot.mariadb.rootHost | string | `"%"` | Host mask for the root user grant (% = allow from any host). |
 | bebot.mariadb.rootUser | string | `"root"` | authenticates its root user as literally "root", so this is not actually configurable. |
 | bebot.mariadbOperator | string | `nil` |  |
+| bebot.redis | object | `{"enabled":false,"image":"quay.io/opstree/redis:v7.0.15","metrics":{"enabled":false,"image":""},"persistence":{"enabled":true,"size":"1Gi","storageClass":""},"resources":{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}}` | to install it regardless of bebot.redis.enabled. enabled: true |
+| bebot.redis.enabled | bool | `false` | present in the cluster (see bebot.redisOperator.enabled). |
+| bebot.redis.image | string | `"quay.io/opstree/redis:v7.0.15"` | Container image for Redis, passed through to the Redis CR. |
+| bebot.redis.metrics.enabled | bool | `false` | Enable the redis-operator's built-in Prometheus exporter sidecar. |
+| bebot.redis.metrics.image | string | `""` | Container image for the redis-exporter sidecar. Leave empty to use the operator's default. |
+| bebot.redis.persistence.enabled | bool | `true` | on pod restart since nothing but the DB fallback depends on it. |
+| bebot.redis.persistence.size | string | `"1Gi"` | Size of the Redis CR's storage volume. |
+| bebot.redis.persistence.storageClass | string | `""` | StorageClass to use for the volume. Leave empty to use the cluster default. |
+| bebot.redis.resources | object | `{"limits":{"cpu":"200m","memory":"128Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource requests and limits for the Redis CR's pod. |
+| bebot.redisOperator | string | `nil` |  |
 | bebot.resources | object | `{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}` | Resource requests and limits for the bot container. Tune based on bot module load and guild activity. |
 | bebot.terminationGracePeriodSeconds | int | `60` | Seconds Kubernetes waits for the bot to exit after SIGTERM before sending SIGKILL. Should be long enough for the bot to disconnect from AO servers cleanly. |
