@@ -1,3 +1,10 @@
+## [2.27.6](https://github.com/zznathans/bebot-helm/compare/2.27.5...2.27.6) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for JSON console log fix ([a520ef9](https://github.com/zznathans/bebot-helm/commit/a520ef94b558e58859a3fe434767fb0242dba10e))
+
 ## [2.27.5](https://github.com/zznathans/bebot-helm/compare/2.27.4...2.27.5) (2026-07-31)
 
 
