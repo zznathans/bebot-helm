@@ -1,0 +1,14 @@
+<?php
+  /*
+  Redis host. This chart points every instance at its shared in-cluster Redis
+  (<release>-redis) by default - see bebot.redis in values.yaml.
+  */
+  $host = "{{ .redisHost }}";
+
+  /*
+  Redis port. Leave unset (default) to use the client library default (6379).
+  */
+{{- if .redisPort }}
+  $port = {{ .redisPort }};
+{{- end }}
+?>

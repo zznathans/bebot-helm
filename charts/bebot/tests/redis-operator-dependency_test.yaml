@@ -1,0 +1,32 @@
+suite: redis-operator dependency condition
+templates:
+  - charts/redis-operator/templates/*
+tests:
+  - it: skips the operator by default (redis.enabled defaults false)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: installs the operator when redis is enabled and redisOperator.enabled is left unset
+    set:
+      bebot.redis.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/redis-operator/templates/operator-deployment.yaml
+
+  - it: skips the operator entirely when explicitly disabled, even with redis.enabled true
+    set:
+      bebot.redis.enabled: true
+      bebot.redisOperator.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: installs the operator when explicitly enabled, even with redis.enabled false
+    set:
+      bebot.redisOperator.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: charts/redis-operator/templates/operator-deployment.yaml

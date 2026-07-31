@@ -5,5 +5,8 @@ dependencies:
 - name: mariadb-operator
   repository: https://mariadb-operator.github.io/mariadb-operator
   version: 26.6.0
-digest: sha256:ee0961b50c681201ed05503e2f1468efb6cba53239f08d20bea65dbfac106cc9
-generated: "2026-07-30T18:38:05.668839466-04:00"
+- name: redis-operator
+  repository: https://ot-container-kit.github.io/helm-charts/
+  version: 0.24.0
+digest: sha256:af9881276ebdfd7ed4b5938444ebfefedc13f2bd2c36e134950e4a512cee46f7
+generated: "2026-07-31T15:50:44.105494019-04:00"
