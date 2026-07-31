@@ -1,3 +1,10 @@
+## [2.26.3](https://github.com/zznathans/bebot-helm/compare/2.26.2...2.26.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** source Market and Advertise modules from the BeBot fork ([bec6d85](https://github.com/zznathans/bebot-helm/commit/bec6d85799f174bb6d4316d2e861ac1242cacd7f)), closes [#115](https://github.com/zznathans/bebot-helm/issues/115)
+
 ## [2.26.2](https://github.com/zznathans/bebot-helm/compare/2.26.1...2.26.2) (2026-07-30)
 
 
