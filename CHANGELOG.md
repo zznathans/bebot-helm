@@ -1,3 +1,10 @@
+## [2.27.5](https://github.com/zznathans/bebot-helm/compare/2.27.4...2.27.5) (2026-07-31)
+
+
+### Bug Fixes
+
+* **chart:** fix missing log format fields in ExternalSecret Bot.conf ([3d49644](https://github.com/zznathans/bebot-helm/commit/3d4964440a3f2033c82133f12b418b723e7e048e))
+
 ## [2.27.4](https://github.com/zznathans/bebot-helm/compare/2.27.3...2.27.4) (2026-07-31)
 
 
