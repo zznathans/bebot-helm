@@ -14,6 +14,7 @@ Helm chart for bebot
 | bebot.externalSecret.secretStoreKind | string | `"ClusterSecretStore"` | Kind of the secret store (ClusterSecretStore or SecretStore). |
 | bebot.externalSecret.secretStoreName | string | `"gcp-clusterstore"` | Name of the ClusterSecretStore or SecretStore to use. |
 | bebot.extraObjects | list | `[]` | Raw Kubernetes objects to render alongside chart-managed resources. Useful for ExternalSecrets, NetworkPolicies, or other objects not covered by chart values. |
+| bebot.imagePullPolicy | string | `"IfNotPresent"` | up whatever image currently sits behind that tag. |
 | bebot.imagePullSecrets | list | `[]` | List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public. |
 | bebot.imageRepository | string | `"ghcr.io/zznathans/bebot-helm"` | Container image registry and repository for the bebot image. |
 | bebot.imageTag | string | `"2.28.0"` | Image tag to deploy. Use a specific digest or tag in production for reproducibility. |
