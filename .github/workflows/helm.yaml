@@ -1,17 +1,14 @@
 name: Release Charts
 
 on:
-  workflow_run:
-    workflows: ["Docker"]
-    types: [completed]
+  release:
+    types: [published]
 
 jobs:
   release:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    # Only publish the chart when the Docker image built and scanned successfully.
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7

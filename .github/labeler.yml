@@ -6,12 +6,6 @@ helm:
     - 'charts/bebot/Chart.yaml'
     - 'charts/bebot/files/**'
 
-docker:
-- changed-files:
-  - any-glob-to-any-file:
-    - 'charts/bebot/Dockerfile'
-    - 'charts/bebot/docker-entrypoint.sh'
-
 ci:
 - changed-files:
   - any-glob-to-any-file:

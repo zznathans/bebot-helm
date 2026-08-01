@@ -1,4 +1,0 @@
-[submodule "charts/bebot/vendor/BeBot"]
-	path = charts/bebot/vendor/BeBot
-	url = https://github.com/zznathans/BeBot.git
-	branch = master
