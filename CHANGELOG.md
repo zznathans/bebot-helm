@@ -1,3 +1,10 @@
+# [2.28.0](https://github.com/zznathans/bebot-helm/compare/2.27.7...2.28.0) (2026-08-01)
+
+
+### Features
+
+* add manual dev image build workflow ([69d2129](https://github.com/zznathans/bebot-helm/commit/69d2129fa6dbb1ce5467d01443c5b5f9ad24a29f))
+
 ## [2.27.7](https://github.com/zznathans/bebot-helm/compare/2.27.6...2.27.7) (2026-08-01)
 
 
