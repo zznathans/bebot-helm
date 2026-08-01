@@ -24,6 +24,23 @@
 
 * **bot:** bump image to 1.1.0 ([f8b0066](https://github.com/zznathans/bebot-helm/commit/f8b00660034d5ba76cbfce9c43f0c9cf339ce57b))
 * **bot:** bump image to 1.2.0 ([0b1833c](https://github.com/zznathans/bebot-helm/commit/0b1833c70e7fe1e3d188051eb3cd2ca2dbf3629e))
+* **bot:** bump image to 1.4.0 ([3c826b2](https://github.com/zznathans/bebot-helm/commit/3c826b2fa023eb504212fcc44354f9cdb4d1f8a8))
+* **ci:** remove stale duplicate .releaserc, keep .releaserc.json only ([fd7d74b](https://github.com/zznathans/bebot-helm/commit/fd7d74b8379514bf42e89e31a4c888da41c796fc)), closes [#134](https://github.com/zznathans/bebot-helm/issues/134)
+* **ci:** split release into prepare-PR + cut-release, main ruleset blocks direct pushes ([47fff13](https://github.com/zznathans/bebot-helm/commit/47fff131081807ab778aa9f266abfe9ac33ab639))
+
+
+
+
+
+## 2.28.3 (2026-08-01)
+
+## [2.28.3](https://github.com/zznathans/bebot-helm/compare/2.28.2...2.28.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* **bot:** bump image to 1.1.0 ([f8b0066](https://github.com/zznathans/bebot-helm/commit/f8b00660034d5ba76cbfce9c43f0c9cf339ce57b))
+* **bot:** bump image to 1.2.0 ([0b1833c](https://github.com/zznathans/bebot-helm/commit/0b1833c70e7fe1e3d188051eb3cd2ca2dbf3629e))
 * **ci:** remove stale duplicate .releaserc, keep .releaserc.json only ([fd7d74b](https://github.com/zznathans/bebot-helm/commit/fd7d74b8379514bf42e89e31a4c888da41c796fc)), closes [#134](https://github.com/zznathans/bebot-helm/issues/134)
 * **ci:** split release into prepare-PR + cut-release, main ruleset blocks direct pushes ([47fff13](https://github.com/zznathans/bebot-helm/commit/47fff131081807ab778aa9f266abfe9ac33ab639))
 
