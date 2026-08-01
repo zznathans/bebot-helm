@@ -1,3 +1,10 @@
+## [2.28.1](https://github.com/zznathans/bebot-helm/compare/2.28.0...2.28.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for market timer dedup fix ([b95b7f5](https://github.com/zznathans/bebot-helm/commit/b95b7f50865a98bb813a0f51935fab430fca20ab)), closes [zznathans/BeBot#17](https://github.com/zznathans/BeBot/issues/17)
+
 # [2.28.0](https://github.com/zznathans/bebot-helm/compare/2.27.7...2.28.0) (2026-08-01)
 
 
