@@ -1,0 +1,102 @@
+name: Prepare Release
+
+# Stage 1 of 2. main has a branch ruleset requiring every change to go
+# through a PR (with no working bypass for automation - tried both a
+# fine-grained and a classic PAT's role-based ruleset bypass, neither
+# actually got honored, plus the ruleset's code_scanning rule structurally
+# can't be satisfied by an unpushed commit either way), so semantic-release
+# can no longer push its version-bump commit straight to main the way it
+# used to. Splitting into two stages instead:
+#
+#   1. (this workflow) Computes the next version via a dry-run semantic
+#      -release (no push), bumps Chart.yaml/values.yaml/VALUES.md, and opens
+#      a normal PR for it - same shape as the BeBot image-bump PR you
+#      already review every time.
+#   2. cut-release.yaml fires once that PR is merged and actually creates
+#      the version tag + GitHub Release (via the GitHub API, not a git push
+#      - so the ruleset never applies to it) from that already-correct
+#      commit.
+#
+# helm.yaml (unchanged) publishes the chart once cut-release.yaml's GitHub
+# Release fires.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Compute next version and open a bump PR
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      !contains(github.event.workflow_run.head_commit.message, '[skip ci]')
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: ./.github/actions/install-helm-docs
+
+      - name: Compute next version (dry run - no push, no release)
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 25
+          dry_run: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+
+      - name: Bump chart files and open a PR
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          VERSION: ${{ steps.semantic.outputs.new_release_version }}
+          NOTES: ${{ steps.semantic.outputs.new_release_notes }}
+        run: |
+          branch="release/${VERSION}"
+
+          # Idempotent: if a prepare run already opened this branch/PR (e.g.
+          # a second commit landed on main before the first PR was merged,
+          # re-triggering this workflow against the same unreleased commit
+          # set and thus the same next version), don't try again.
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Branch $branch already exists, assuming a prepare PR is already open."
+            exit 0
+          fi
+
+          sed -i \
+            -e "s/^version:.*/version: ${VERSION}/" \
+            -e "s/^appVersion:.*/appVersion: ${VERSION}/" \
+            charts/bebot/Chart.yaml
+          helm-docs --template-files VALUES.md.gotmpl --output-file VALUES.md --chart-search-root charts
+
+          {
+            echo "## ${VERSION} ($(date -u +%Y-%m-%d))"
+            echo
+            echo "$NOTES"
+            echo
+            if [ -f CHANGELOG.md ]; then
+              cat CHANGELOG.md
+            fi
+          } > CHANGELOG.md.new
+          mv CHANGELOG.md.new CHANGELOG.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add charts/bebot/Chart.yaml charts/bebot/VALUES.md CHANGELOG.md
+          git commit -m "chore(release): ${VERSION}"
+          git push origin "$branch"
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore(release): ${VERSION}" \
+            --body "$NOTES"

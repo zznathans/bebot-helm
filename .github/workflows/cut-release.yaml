@@ -1,0 +1,35 @@
+name: Cut Release
+
+# Stage 2 of 2 - see prepare-release.yaml for the full explanation. Fires
+# once a "chore(release): X.Y.Z" PR (opened by prepare-release.yaml) merges,
+# and creates the actual version tag + GitHub Release via the GitHub API
+# (semantic-release's @semantic-release/github plugin) - not a git push, so
+# main's branch-protection ruleset never applies to it. Chart.yaml/
+# values.yaml/VALUES.md/CHANGELOG.md are already correct on main by the
+# time this runs, since that's exactly what the merged PR contains.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  cut-release:
+    name: Semantic Release (publish)
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 25
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
