@@ -4,12 +4,31 @@ name: Cut Release
 # once a "chore(release): X.Y.Z" PR (opened by prepare-release.yaml) merges,
 # and creates the actual version tag + GitHub Release via the GitHub API
 # (semantic-release's @semantic-release/github plugin) - not a git push, so
-# main's branch-protection ruleset never applies to it. Chart.yaml/
-# values.yaml/VALUES.md/CHANGELOG.md are already correct on main by the
-# time this runs, since that's exactly what the merged PR contains.
+# main's branch-protection ruleset never applies to it. Chart.yaml/VALUES.md/
+# CHANGELOG.md are already correct on main by the time this runs, since
+# that's exactly what the merged PR contains.
+#
+# Triggered by workflow_run (same as prepare-release.yaml), NOT
+# pull_request: @semantic-release/github refuses to actually publish when
+# GITHUB_EVENT_NAME is "pull_request" ("This run was triggered by a pull
+# request and therefore a new version won't be published") - every run
+# under the old pull_request-based trigger reported success while silently
+# doing nothing, which prepare-release.yaml then (correctly, given what it
+# could see) mistook for "2.28.3 still needs releasing" and re-opened over
+# and over. workflow_run doesn't have that restriction.
+#
+# Both this workflow and prepare-release.yaml fire off the exact same CI
+# -success-on-main signal, so they're partitioned by the merge commit's
+# message so only one of them ever acts on a given commit: this one only
+# runs for a release-bump merge (message starts with "chore(release):" for
+# a squash/rebase merge, or contains "/release/" for the default merge-
+# commit style "Merge pull request #N from OWNER/release/X.Y.Z"); anything
+# else is left to prepare-release.yaml.
 on:
-  pull_request:
-    types: [closed]
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
 
 permissions:
   contents: read
@@ -19,8 +38,11 @@ jobs:
     name: Semantic Release (publish)
     runs-on: ubuntu-latest
     if: |
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/')
+      github.event.workflow_run.conclusion == 'success' &&
+      (
+        startsWith(github.event.workflow_run.head_commit.message, 'chore(release):') ||
+        contains(github.event.workflow_run.head_commit.message, '/release/')
+      )
     steps:
       - uses: actions/checkout@v7
         with:
