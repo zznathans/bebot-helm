@@ -19,6 +19,15 @@ name: Prepare Release
 #
 # helm.yaml (unchanged) publishes the chart once cut-release.yaml's GitHub
 # Release fires.
+#
+# Both workflows fire off the same CI-success-on-main signal, so this one
+# explicitly skips a release-bump merge itself (message starts with
+# "chore(release):", or contains "/release/" for the default merge-commit
+# message style) and leaves that to cut-release.yaml - otherwise the two
+# would race on the same commit, and this one would (correctly, given what
+# it can see before cut-release has actually published) mistake an
+# already-in-flight release for one that still needs preparing and open a
+# duplicate bump PR.
 on:
   workflow_run:
     workflows: ["CI"]
@@ -34,7 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.workflow_run.conclusion == 'success' &&
-      !contains(github.event.workflow_run.head_commit.message, '[skip ci]')
+      !contains(github.event.workflow_run.head_commit.message, '[skip ci]') &&
+      !startsWith(github.event.workflow_run.head_commit.message, 'chore(release):') &&
+      !contains(github.event.workflow_run.head_commit.message, '/release/')
     steps:
       - uses: actions/checkout@v7
         with:
