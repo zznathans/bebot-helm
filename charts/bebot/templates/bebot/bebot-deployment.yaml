@@ -55,6 +55,7 @@ spec:
       containers:
         - name: {{ $.Release.Name }}
           image: {{ $.Values.bebot.imageRepository }}:{{ $.Values.bebot.imageTag }}
+          imagePullPolicy: {{ $.Values.bebot.imagePullPolicy | default "IfNotPresent" }}
           lifecycle:
             preStop:
               exec:

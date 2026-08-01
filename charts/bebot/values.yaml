@@ -166,6 +166,10 @@ bebot:
   imageRepository: ghcr.io/zznathans/bebot-helm
   # -- Image tag to deploy. Use a specific digest or tag in production for reproducibility.
   imageTag: "2.28.0"
+  # -- Kubernetes image pull policy. Leave as the default for production (pinned tags don't need
+  # -- re-pulling); set to "Always" when tracking a floating tag like "dev" so a pod restart picks
+  # -- up whatever image currently sits behind that tag.
+  imagePullPolicy: IfNotPresent
   # -- List of image pull secret names to attach to the ServiceAccount. Leave empty if the registry is public.
   imagePullSecrets: []
   # imagePullSecrets:
