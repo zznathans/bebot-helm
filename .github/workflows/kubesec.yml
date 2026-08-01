@@ -17,7 +17,7 @@ on:
 jobs:
   kubesec:
     name: kubesec
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
