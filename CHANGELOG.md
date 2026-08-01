@@ -1,3 +1,10 @@
+## [2.27.7](https://github.com/zznathans/bebot-helm/compare/2.27.6...2.27.7) (2026-08-01)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule for market price/QL filters ([caea4d5](https://github.com/zznathans/bebot-helm/commit/caea4d55baf650db7324620db668490732c6ef74))
+
 ## [2.27.6](https://github.com/zznathans/bebot-helm/compare/2.27.5...2.27.6) (2026-07-31)
 
 
