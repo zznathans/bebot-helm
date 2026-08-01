@@ -1,3 +1,10 @@
+## [2.28.2](https://github.com/zznathans/bebot-helm/compare/2.28.1...2.28.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* **bot:** bump vendored BeBot submodule to 1.0.0 ([cef6ea2](https://github.com/zznathans/bebot-helm/commit/cef6ea255783a9348cf44d0d7e3206600e259f40))
+
 ## [2.28.1](https://github.com/zznathans/bebot-helm/compare/2.28.0...2.28.1) (2026-08-01)
 
 
