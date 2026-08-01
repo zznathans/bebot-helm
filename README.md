@@ -1,6 +1,6 @@
 # ao-bebot Helm Chart
 
-Helm chart for deploying [BeBot](https://github.com/J-Soft/BeBot) (an Anarchy Online IRC bot) on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management.
+Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of [J-Soft/BeBot](https://github.com/J-Soft/BeBot), an Anarchy Online/Age of Conan chat bot) on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management. This chart is deploy-only - the image it deploys is built and published by that repo, not this one.
 
 ---
 
@@ -213,20 +213,24 @@ These are optional. All values have sensible defaults matching the original BeBo
 
 All automation runs through GitHub Actions. The pipelines are chained: each stage only proceeds when the previous one succeeds.
 
+This repo is chart resources and their dependencies only - no bot code, no
+Dockerfile, no image build. That all lives in
+[zznathans/BeBot](https://github.com/zznathans/BeBot), which builds its own
+image on every release and opens a PR here bumping `imageRepository`/
+`imageTag` in `values.yaml` (`fix(bot): bump image to <version>`) - merging
+that PR is what triggers everything below.
+
 ### Workflow overview
 
 ```
 Push / PR
     └── CI ──────────────────────────────────────────────── push to main / PR to main
            └── Release (semantic-release) ──────────────── main only, on CI success
-                    └── Docker (build + push + scan) ───── on GitHub Release published
-                              └── Release Charts ─────────── on Docker success
-                                        └── Pages deploy ── on Release Charts success
+                    └── Release Charts ─────────────────── on GitHub Release published
+                              └── Pages deploy ──────────── on Release Charts success
 ```
 
 PRs are labelled automatically by the **Pull Request Labeler** workflow whenever they are opened or updated.
-
-The **Trivy** workflow runs independently on a weekly schedule to catch newly-disclosed vulnerabilities in the published image.
 
 ### Workflows
 
@@ -234,11 +238,9 @@ The **Trivy** workflow runs independently on a weekly schedule to catch newly-di
 |---|---|---|---|
 | `ci.yaml` | CI | Push to `main`; PR to `main` | Lint and test — pylint, pytest, yamllint, helm lint, helm unit tests, helm-docs auto-commit |
 | `release.yaml` | Release | CI passes on `main` (skips `[skip ci]` commits) | Runs [semantic-release](https://semantic-release.gitbook.io) to cut a versioned GitHub Release and update the changelog; uses a GitHub App token to satisfy branch protection requirements |
-| `docker.yaml` | Docker | GitHub Release published | Builds a multi-arch (`linux/amd64`, `linux/arm64`) image, pushes to `ghcr.io`, scans with Trivy, and uploads results to the Security tab; blocks on `CRITICAL`/`HIGH` unfixed CVEs |
-| `helm.yaml` | Release Charts | Docker workflow succeeds | Runs [chart-releaser](https://github.com/helm/chart-releaser-action) to package the chart and publish it to the `gh-pages` branch; also copies `README.md` from `main` to `gh-pages` |
+| `helm.yaml` | Release Charts | GitHub Release published | Runs [chart-releaser](https://github.com/helm/chart-releaser-action) to package the chart and publish it to the `gh-pages` branch; also copies `README.md` from `main` to `gh-pages` |
 | `static.yml` | Deploy static content to Pages | Release Charts succeeds (or manual `workflow_dispatch`) | Deploys the `gh-pages` branch to GitHub Pages, making the Helm repository publicly available |
-| `labeler.yaml` | Pull Request Labeler | Pull request opened / updated | Applies labels (`helm`, `docker`, `ci`, `documentation`, `tests`, `tools`, `examples`, `dependencies`) based on changed files using `.github/labeler.yml` |
-| `trivy.yml` | trivy | Weekly schedule (Mondays) | Builds the image from the Dockerfile and scans with Trivy; results are uploaded to the Security tab |
+| `labeler.yaml` | Pull Request Labeler | Pull request opened / updated | Applies labels (`helm`, `ci`, `documentation`, `tests`, `tools`, `examples`, `dependencies`) based on changed files using `.github/labeler.yml` |
 
 ### Secrets and variables required
 
