@@ -5,9 +5,9 @@ name: bebot
 description: Helm chart for bebot
 type: application
 
-appVersion: 2.28.8
+appVersion: 2.28.9
 
-version: 2.28.8
+version: 2.28.9
 
 dependencies:
   - name: mariadb-operator-crds

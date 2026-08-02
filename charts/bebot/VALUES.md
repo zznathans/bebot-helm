@@ -2,7 +2,7 @@
 
 Helm chart for bebot
 
-**Version:** 2.28.8
+**Version:** 2.28.9
 
 ## Values
 
