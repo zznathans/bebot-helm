@@ -1,5 +1,8 @@
 # ao-bebot Helm Chart
 
+[![CI](https://github.com/zznathans/bebot-helm/actions/workflows/ci.yaml/badge.svg)](https://github.com/zznathans/bebot-helm/actions/workflows/ci.yaml)
+[![Release](https://img.shields.io/github/v/release/zznathans/bebot-helm)](https://github.com/zznathans/bebot-helm/releases)
+
 Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of [J-Soft/BeBot](https://github.com/J-Soft/BeBot), an Anarchy Online/Age of Conan chat bot) on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management. This chart is deploy-only - the image it deploys is built and published by that repo, not this one.
 
 ---
