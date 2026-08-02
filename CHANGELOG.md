@@ -1,3 +1,16 @@
+## 2.28.8 (2026-08-02)
+
+## [2.28.8](https://github.com/zznathans/bebot-helm/compare/2.28.7...2.28.8) (2026-08-02)
+
+
+### Bug Fixes
+
+* **bot:** bump image to 1.6.3 ([1bd28a4](https://github.com/zznathans/bebot-helm/commit/1bd28a45d943ef3bde7f6dda6245722b5c587648))
+
+
+
+
+
 ## 2.28.7 (2026-08-02)
 
 ## [2.28.7](https://github.com/zznathans/bebot-helm/compare/2.28.6...2.28.7) (2026-08-02)
