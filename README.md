@@ -498,3 +498,4 @@ bebot:
             remoteRef:
               key: my-registry-creds
 ```
+
