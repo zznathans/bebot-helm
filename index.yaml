@@ -2,6 +2,29 @@ apiVersion: v1
 entries:
   bebot:
   - apiVersion: v2
+    appVersion: 2.28.14
+    created: "2026-08-04T21:12:34.079495285Z"
+    dependencies:
+    - condition: bebot.mariadbOperator.enabled,bebot.mariadb.enabled
+      name: mariadb-operator-crds
+      repository: https://mariadb-operator.github.io/mariadb-operator
+      version: 26.6.0
+    - condition: bebot.mariadbOperator.enabled,bebot.mariadb.enabled
+      name: mariadb-operator
+      repository: https://mariadb-operator.github.io/mariadb-operator
+      version: 26.6.0
+    - condition: bebot.redisOperator.enabled,bebot.redis.enabled
+      name: redis-operator
+      repository: https://ot-container-kit.github.io/helm-charts/
+      version: 0.24.0
+    description: Helm chart for bebot
+    digest: 1565601b46e7398e53998fffe0292503282bd81d82cde57fc46ee18ccf3a1f51
+    name: bebot
+    type: application
+    urls:
+    - https://github.com/zznathans/bebot-helm/releases/download/bebot-2.28.14/bebot-2.28.14.tgz
+    version: 2.28.14
+  - apiVersion: v2
     appVersion: 2.28.13
     created: "2026-08-04T20:50:43.265605808Z"
     dependencies:
@@ -1504,4 +1527,4 @@ entries:
     urls:
     - https://github.com/zznathans/bebot-helm/releases/download/bebot-1.0.2/bebot-1.0.2.tgz
     version: 1.0.2
-generated: "2026-08-04T20:50:43.265772123Z"
+generated: "2026-08-04T21:12:34.079687178Z"
