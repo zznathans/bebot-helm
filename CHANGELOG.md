@@ -1,3 +1,16 @@
+## 2.28.20 (2026-08-08)
+
+## [2.28.20](https://github.com/zznathans/bebot-helm/compare/2.28.19...2.28.20) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ci:** scope scorecard-upload.yml's security-events:write to job level ([b9393ba](https://github.com/zznathans/bebot-helm/commit/b9393baa48c3f9a139713f016908bf70446ec91c))
+
+
+
+
+
 ## 2.28.19 (2026-08-08)
 
 ## [2.28.19](https://github.com/zznathans/bebot-helm/compare/2.28.18...2.28.19) (2026-08-08)
