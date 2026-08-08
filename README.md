@@ -32,7 +32,7 @@ Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of 
 
 ```bash
 # 1. Add the Helm repository
-helm repo add bebot https://zznathans.github.io/bebot-helm
+helm repo add bebot https://bebot-helm.ao.yeetbox.net/
 helm repo update
 
 # 2. Install the chart
