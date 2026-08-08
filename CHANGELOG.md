@@ -1,3 +1,16 @@
+## 2.28.18 (2026-08-08)
+
+## [2.28.18](https://github.com/zznathans/bebot-helm/compare/2.28.17...2.28.18) (2026-08-08)
+
+
+### Bug Fixes
+
+* trigger a release to refresh CI/security reports ([2d94d62](https://github.com/zznathans/bebot-helm/commit/2d94d629048e4f27cdd268e4911c63fcb475337d))
+
+
+
+
+
 ## 2.28.17 (2026-08-08)
 
 ## [2.28.17](https://github.com/zznathans/bebot-helm/compare/2.28.16...2.28.17) (2026-08-08)
