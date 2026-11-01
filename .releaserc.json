@@ -1,12 +1,20 @@
 {
   "tagFormat": "${version}",
   "branches": ["main"],
-  "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
-    ["@semantic-release/github", {
-      "successComment": false,
-      "failTitle": false
-    }]
+  "verifyConditions": [
+    "@semantic-release/changelog",
+    "@semantic-release/npm",
+    "@semantic-release/git",
+    "@qiwi/semantic-release-gh-pages-plugin"
+  ],
+  "publish": [
+    "@semantic-release/npm",
+    "@semantic-release/github",
+    [
+      "@qiwi/semantic-release-gh-pages-plugin",
+      {
+        "src": "gh-pages"
+      }
+    ]
   ]
 }
