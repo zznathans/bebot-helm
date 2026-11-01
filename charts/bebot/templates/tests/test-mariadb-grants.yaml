@@ -5,6 +5,8 @@ kind: Pod
 metadata:
   name: {{ $.Release.Name }}-test-mariadb-grants-{{ .name }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    {{ $.Release.Name }}-mariadb-client: "true"
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -16,7 +18,7 @@ spec:
       command:
         - /bin/sh
         - -c
-        - MYSQL_PWD="${MARIADB_PASSWORD}" mariadb -u"${MARIADB_USER}" -h{{ if $.Values.bebot.mariadb.perInstance }}{{ $.Release.Name }}-mariadb-{{ .name }}{{ else }}{{ $.Release.Name }}-mariadb{{ end }} "${MARIADB_DATABASE}" -e "SELECT 1"
+        - MYSQL_PWD="${MARIADB_PASSWORD}" mariadb --skip-ssl -u"${MARIADB_USER}" -h{{ .mariadbHost | default (printf "%s-mariadb" $.Release.Name) }} "${MARIADB_DATABASE}" -e "SELECT 1"
       env:
         - name: MARIADB_USER
           valueFrom:

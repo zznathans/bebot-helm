@@ -2,8 +2,7 @@ bebot:
   # -- Configuration for the single upstream external secret used by all ExternalSecret resources in this chart.
   # All ExternalSecrets reference this one GCP/external secret, which must be a JSON object with a key per credential.
   # Required keys: <instance-name>_ao_password, <instance-name>_mariadb_user, <instance-name>_mariadb_password,
-  # <instance-name>_mariadb_database (per instance); mariadb_root_password, mariadb_root_user (shared);
-  # s3_access_key, s3_secret_key (if using S3 backup with externalSecret.enabled).
+  # <instance-name>_mariadb_database (per instance); mariadb_root_password, mariadb_root_user (shared).
   externalSecret:
     # -- Name of the upstream secret in the external store (required when any resource uses createSecret: false).
     gcpSecretName: ""
@@ -14,110 +13,34 @@ bebot:
     # -- How often ExternalSecrets poll for updates.
     secretRefreshInterval: 1h
 
-  mariadbOperator:
-    # -- Pull in the mariadb-operator and mariadb-operator-crds charts as dependencies of this
-    # -- chart. Left unset (the default), this follows bebot.mariadb.enabled: the operator is
-    # -- installed automatically when the in-cluster MariaDB is enabled, and skipped entirely
-    # -- when it's disabled (e.g. every instance uses an external mariadbHost), since nothing
-    # -- in that case uses the operator's CRDs. Set this explicitly to override that default in
-    # -- either direction: false to reuse a cluster-shared operator instead of installing a
-    # -- second, redundant copy (even with bebot.mariadb.enabled: true); true to install it
-    # -- regardless of bebot.mariadb.enabled.
-    # enabled: true
-
   mariadb:
-    # -- Deploy a MariaDB instance (via the mariadb-operator's MariaDB CR) as part of this chart.
-    # -- Set to false to use an external/managed database. Requires the mariadb-operator CRDs/controller
-    # -- to already be present in the cluster (see bebot.mariadbOperator.enabled).
+    # -- Deploy a single-pod MariaDB with a PVC (a one-replica StatefulSet) as part of this chart,
+    # -- shared by every instance that doesn't set mariadbHost. Each of those instances gets its
+    # -- own database and user, created by a db-setup init container on the bot's pod. This is
+    # -- all the chart offers: for replication, backups, metrics etc. run your own database, set
+    # -- this to false and point each instance at it with mariadbHost.
     enabled: true
-    # -- Container image for MariaDB, passed through to the MariaDB CR.
+    # -- Container image for MariaDB.
     image: "mariadb:11.4"
     persistence:
-      # -- Enable persistent storage for MariaDB data. If false, the MariaDB CR uses ephemeral storage and data is lost on pod restart.
-      enabled: true
-      # -- Size of the MariaDB CR's storage volume.
+      # -- Size of the MariaDB data PVC.
       size: 1Gi
-      # -- StorageClass to use for the volume. Leave empty to use the cluster default.
+      # -- StorageClass to use for the PVC. Leave empty to use the cluster default.
       storageClass: ""
-    # -- MySQL root username. Informational only — the mariadb-operator's MariaDB CR always
-    # -- authenticates its root user as literally "root", so this is not actually configurable.
-    rootUser: "root"
-    # -- Host mask for the root user grant (% = allow from any host).
-    rootHost: "%"
-    metrics:
-      # -- Enable the MariaDB CR's built-in Prometheus exporter (spec.metrics.enabled) and expose metrics on port 9104.
-      enabled: false
-      # -- Container image for the operator-managed mysqld_exporter. Leave empty to use the operator's default.
-      image: ""
-      grafanaDashboard:
-        # -- Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment.
-        enabled: false
-        # -- Label the Grafana sidecar uses to discover dashboard ConfigMaps.
-        label: grafana_dashboard
-    backup:
-      # -- Enable a mariadb-operator Backup CR to periodically dump each database.
-      enabled: false
-      # -- Cron schedule for the backup (default: 2am daily).
-      schedule: "0 2 * * *"
-      # -- How long to retain backups for, as a Go duration string (e.g. "720h" = 30 days).
-      maxRetention: "720h"
-      # -- Where to send backups: `pvc` stores dumps on a PersistentVolumeClaim, `s3` uploads to an S3-compatible bucket.
-      destination: pvc
-      pvc:
-        # -- Size of the PVC used to store backup dumps.
-        size: 5Gi
-        # -- StorageClass for the backup PVC. Leave empty to use the cluster default.
-        storageClass: ""
-        # -- Access mode for the backup PVC.
-        accessMode: ReadWriteOnce
-      s3:
-        # -- S3 bucket name to upload dumps to. Always required when destination is "s3" - the operator's
-        # -- Backup CRD has no secretKeyRef for this field, so it can't be sourced from an external secret
-        # -- (unlike the credentials below); set it here even when s3.externalSecret.enabled is true.
-        bucket: ""
-        # -- AWS region (or region of your S3-compatible provider).
-        region: "us-east-1"
-        # -- Endpoint host for non-AWS providers (MinIO, Backblaze B2, Cloudflare R2, etc.), without a scheme (e.g.
-        # -- "minio.example.com", not "https://minio.example.com" - a scheme prefix is stripped automatically).
-        # -- Defaults to "s3.<region>.amazonaws.com" when left empty. Like bucket, this can't be sourced from an
-        # -- external secret (the CRD field has no secretKeyRef) - set it directly even with s3.externalSecret.enabled.
-        endpoint: ""
-        # -- Use TLS when connecting to the S3 endpoint. Almost always leave this true - the operator's S3
-        # -- client defaults to plain HTTP otherwise, which most real providers (including Cloudflare R2)
-        # -- reject with a "301 Moved Permanently" redirect rather than actually serving the request.
-        tls: true
-        # -- Key prefix/path within the bucket where dumps are written.
-        path: "backups/bebot"
-        # -- Name of the K8s Secret containing AWS credentials (keys: access-key-id, secret-access-key). This secret can be created manually or managed by the externalSecret block below.
-        credentialsSecret: ""
-        externalSecret:
-          # -- When true, create an ExternalSecret to populate credentialsSecret's access-key-id/secret-access-key
-          # -- from an external secret (bucket/endpoint are NOT sourced from it - see above). When false (default),
-          # -- the secret named by credentialsSecret must already exist.
-          enabled: false
-          # -- Name of the secret in the external store to pull S3 credentials from. Required when enabled is true.
-          # The secret must be a JSON object with keys: bucket_name, endpoint, access_key (base64), secret_key (base64).
-          # bucket_name/endpoint in this payload are unused by this chart now (see bucket/endpoint above) but are
-          # kept in the schema for compatibility with existing populated secrets.
-          secretName: ""
-    restore:
-      # -- Enable a one-shot mariadb-operator Restore CR that restores the live MariaDB instance from a Backup.
-      # -- Turn this on and run `helm upgrade` to trigger a restore, then turn it back off; it does not run automatically.
-      # -- Requires bebot.mariadb.backup.enabled so there's a Backup CR to restore from.
-      enabled: false
-      # -- Optional: restore from a specific point in time (RFC3339, e.g. "2023-12-19T09:00:00Z") instead of the latest backup.
-      targetRecoveryTime: ""
-    bootstrapFrom:
-      # -- Seed a brand-new MariaDB instance automatically from the latest Backup at creation time
-      # -- (spec.bootstrapFrom on the MariaDB CR). This is the disaster-recovery path: if the MariaDB
-      # -- CR/PVC is lost and recreated, it comes back up already populated instead of empty.
-      # -- Requires bebot.mariadb.backup.enabled. Has no effect on an already-existing instance.
-      enabled: false
-      # -- Optional: bootstrap from a specific point in time (RFC3339) instead of the latest backup.
-      targetRecoveryTime: ""
+    # -- Resource requests and limits for the MariaDB container.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
 
     # Controls how the MariaDB root credentials secret is managed.
-    # When unset or true: a K8s Secret is created by Helm with a randomly generated password (idempotent across upgrades).
+    # When unset or true: a K8s Secret is created by Helm with a randomly generated password
+    #                     (reused across upgrades via Helm `lookup`, which doesn't work under
+    #                     ArgoCD - use createSecret: false there, or the password regenerates on
+    #                     every render and stops matching the one in the database).
     # When false: an ExternalSecret is created instead, pulling mariadb_root_password and mariadb_root_user
     #             from the upstream secret defined at bebot.externalSecret.
     # createSecret: true
@@ -192,8 +115,8 @@ bebot:
       # mariadbHost: ""              # MySQL server host for this instance. Leave unset to use this
       #                               # release's shared in-cluster MariaDB (<release>-mariadb). Set to point
       #                               # this instance at a different/external MySQL-compatible server instead
-      #                               # -- when set, this chart won't create a Database/User/Grant CR for it,
-      #                               # since that server isn't the one this chart's mariadb-operator manages.
+      #                               # -- its database and user must already exist there, the chart only
+      #                               # creates them on its own MariaDB.
       # mariadbPort: 3306            # MySQL port for this instance. Leave unset to use the default (3306).
       # mariadbSsl: false            # Connect to mariadbHost over SSL/TLS. Required by most managed database
       #                               # providers (e.g. DigitalOcean, AWS RDS) - set to true when using one.

@@ -17,22 +17,10 @@ spec:
             matchLabels:
               app: {{ $.Release.Name }}-{{ .name }}
         {{- end }}
-        {{- if or .Values.bebot.mariadb.backup.enabled .Values.bebot.mariadb.restore.enabled .Values.bebot.mariadb.bootstrapFrom.enabled }}
-        {{/*
-        mariadb-operator doesn't document stable pod labels for the Backup/Restore Job pods it
-        creates, so rather than guess a selector that could silently break backups/restores,
-        allow ingress from any pod in this namespace when any of these operator-driven jobs are
-        in play (NetworkPolicy ingress `from` with no namespaceSelector already scopes this to
-        the release's own namespace).
-        */}}
-        - podSelector: {}
-        {{- end }}
+        - podSelector:
+            matchLabels:
+              {{ .Release.Name }}-mariadb-client: "true"
       ports:
         - protocol: TCP
           port: 3306
-    {{- if .Values.bebot.mariadb.metrics.enabled }}
-    - ports:
-        - protocol: TCP
-          port: 9104
-    {{- end }}
 {{- end }}
