@@ -47,5 +47,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
+        skip_npm_plugin: false
         extra_plugins: |
           @qiwi/semantic-release-gh-pages-plugin
