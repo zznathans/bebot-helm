@@ -30,6 +30,10 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  packages: write
+  pages: write
+  pull-requests: write
 
 jobs:
   release:
