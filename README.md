@@ -4,17 +4,15 @@
 [![Release](https://img.shields.io/github/v/release/zznathans/bebot-helm)](https://github.com/zznathans/bebot-helm/releases)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/zznathans/bebot-helm/badge)](https://scorecard.dev/viewer/?uri=github.com/zznathans/bebot-helm)
 
-Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of [J-Soft/BeBot](https://github.com/J-Soft/BeBot), an Anarchy Online/Age of Conan chat bot) on Kubernetes, with optional in-cluster MariaDB, automated backups, and full ExternalSecret support for credential management. This chart is deploy-only - the image it deploys is built and published by that repo, not this one.
+Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of [J-Soft/BeBot](https://github.com/J-Soft/BeBot), an Anarchy Online/Age of Conan chat bot) on Kubernetes, with an optional single-pod in-cluster MariaDB and full ExternalSecret support for credential management. This chart is deploy-only - the image it deploys is built and published by that repo, not this one.
 
 ---
 
 ## Features
 
 - Deploy one or more bot instances from a single chart
-- Optional in-cluster shared MariaDB, managed via the [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator)'s `MariaDB`/`Database`/`User`/`Grant` CRs
+- Optional single-pod in-cluster MariaDB with a PVC, shared by all bot instances
 - Credentials via plain-text Helm values or GCP Secret Manager (ExternalSecrets)
-- S3-compatible or PVC-based database backups via the operator's `Backup` CR
-- On-demand restore (`Restore` CR) and automatic disaster-recovery bootstrap of a fresh MariaDB instance from the latest backup (`bootstrapFrom`)
 - NetworkPolicy to isolate MariaDB access
 - Checksum-based pod rollouts when config or secrets change
 
@@ -25,7 +23,6 @@ Helm chart for deploying [BeBot](https://github.com/zznathans/BeBot) (a fork of 
 - Helm 3
 - Kubernetes 1.25+
 - [external-secrets operator](https://external-secrets.io) (only if using `createSecret: false`)
-- [mariadb-operator](https://github.com/mariadb-operator/mariadb-operator) CRDs and controller, pulled in as a dependency automatically whenever `bebot.mariadb.enabled` is true (the default) and skipped when it's false. If your cluster already runs a shared copy of the operator, set `bebot.mariadbOperator.enabled: false` and install/manage it separately instead (`helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds && helm install mariadb-operator mariadb-operator/mariadb-operator`).
 
 ---
 
@@ -55,77 +52,20 @@ Global configuration for the single upstream secret used by all ExternalSecret r
 | `secretStoreKind` | string | `ClusterSecretStore` | Kind of the secret store (`ClusterSecretStore` or `SecretStore`). |
 | `secretRefreshInterval` | string | `1h` | How often ExternalSecrets poll for updates. |
 
-### `bebot.mariadbOperator`
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | follows `bebot.mariadb.enabled` | Pull in the `mariadb-operator` and `mariadb-operator-crds` charts as toggleable dependencies of this chart (via a `condition` in `Chart.yaml`). Left unset, the operator is installed automatically when `bebot.mariadb.enabled` is true and skipped when it's false (nothing else in this chart uses the operator's CRDs). Set explicitly to override: `false` to reuse a cluster-shared operator instead of installing a second, redundant copy even with `bebot.mariadb.enabled: true`; `true` to install it regardless of `bebot.mariadb.enabled`. |
-
 ### `bebot.mariadb`
 
-The chart deploys a **single shared MariaDB** instance via the mariadb-operator's `MariaDB` custom resource, used by default. All bot instances connect to this shared server unless they override `mariadbHost` (see `bebot.instances[]` below); instances using the shared server each get their own database and user within it, declared via `Database`/`User`/`Grant` CRs — an instance with `mariadbHost` set gets none of those CRs, since it isn't using the server this chart manages.
+The chart deploys a **single-pod MariaDB with a PVC** (a one-replica `StatefulSet` and a `Service`), used by default. That's all it offers: for replication, backups, metrics or anything else, run your own database, set `enabled: false`, and point each instance at it with `mariadbHost` (see `bebot.instances[]` below).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | bool | `true` | Deploy the shared in-cluster MariaDB (as a `MariaDB` CR). Set `false` to use an external database. Requires the mariadb-operator CRDs/controller to be present in the cluster. |
-| `image` | string | `mariadb:11.4` | MariaDB container image, passed through to the `MariaDB` CR. |
-| `persistence.enabled` | bool | `true` | Use persistent storage for MariaDB data. If `false`, the `MariaDB` CR uses ephemeral storage. |
-| `persistence.size` | string | `1Gi` | Storage volume size. |
+| `enabled` | bool | `true` | Deploy the in-cluster MariaDB. Set `false` to use an external database. |
+| `image` | string | `mariadb:11.4` | MariaDB container image. |
+| `persistence.size` | string | `1Gi` | Size of the data PVC. |
 | `persistence.storageClass` | string | `""` | StorageClass name. Empty uses cluster default. |
-| `rootUser` | string | `root` | MariaDB root username (informational — the underlying image/operator always uses `root`). |
-| `rootHost` | string | `%` | Host mask for the root user grant. |
-| `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead. Pulls `mariadb_root_password` and `mariadb_root_user` from `bebot.externalSecret`. |
+| `resources` | object | see `values.yaml` | Resource requests and limits for the MariaDB container. |
+| `createSecret` | bool | `true` (unset) | When `false`, create an ExternalSecret for root credentials instead, pulling `mariadb_root_password` and `mariadb_root_user` from `bebot.externalSecret`. Use `false` under ArgoCD: the generated password relies on Helm `lookup`, so it would otherwise regenerate on every render and stop matching the database. |
 
-Each enabled bot instance gets a `Database`, `User`, and `Grant` CR (replacing the old init-container SQL bootstrap), reconciled continuously by the operator rather than run once.
-
-### `bebot.mariadb.metrics`
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `false` | Enable the `MariaDB` CR's built-in Prometheus exporter (`spec.metrics.enabled`) and expose metrics on port 9104. |
-| `image` | string | `""` | Container image for the operator-managed `mysqld_exporter`. Empty uses the operator's default. |
-| `grafanaDashboard.enabled` | bool | `false` | Create a ConfigMap containing the MySQL Overview dashboard for Grafana's sidecar to load. Requires `grafana.sidecar.dashboards.enabled=true` in your Grafana Helm deployment. |
-| `grafanaDashboard.label` | string | `grafana_dashboard` | Label the Grafana sidecar uses to discover dashboard ConfigMaps. |
-
-### `bebot.mariadb.backup`
-
-A single mariadb-operator `Backup` CR, replacing the old dual CronJob (timestamped + snapshot) setup. Tighten `schedule` for a shorter RPO instead of running a second cadence.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `false` | Enable the `Backup` CR. |
-| `schedule` | string | `0 2 * * *` | Cron schedule. |
-| `maxRetention` | string | `720h` | How long to retain backups, as a Go duration string. |
-| `destination` | string | `pvc` | Backup destination: `pvc` or `s3`. |
-| `pvc.size` | string | `5Gi` | PVC size for backup storage. |
-| `pvc.storageClass` | string | `""` | StorageClass for backup PVC. |
-| `pvc.accessMode` | string | `ReadWriteOnce` | Access mode for backup PVC. |
-| `s3.bucket` | string | — | S3 bucket name. Always required — the underlying `Backup` CRD has no `secretKeyRef` for this field, so it can't be sourced from `s3.externalSecret` (only the credentials below can). |
-| `s3.region` | string | `us-east-1` | AWS region. |
-| `s3.endpoint` | string | `""` | Custom endpoint host, no scheme (MinIO, Backblaze, Cloudflare R2, etc.). Defaults to `s3.<region>.amazonaws.com` when empty. Like `bucket`, this can't be sourced from `s3.externalSecret` — set it directly even when that's enabled. |
-| `s3.tls` | bool | `true` | Use TLS when connecting to the S3 endpoint. Almost always leave this `true` — the operator's S3 client defaults to plain HTTP otherwise, which most real providers (including Cloudflare R2) reject with a "301 Moved Permanently" redirect rather than serving the request. |
-| `s3.path` | string | `backups/bebot` | Key prefix within the bucket. |
-| `s3.credentialsSecret` | string | — | Name of K8s Secret with `access-key-id` and `secret-access-key`. Auto-named when `s3.externalSecret.enabled` is `true`. |
-| `s3.externalSecret.enabled` | bool | `false` | When `true`, create an ExternalSecret to populate `credentialsSecret`'s access-key-id/secret-access-key from a dedicated external secret (bucket/endpoint are not sourced from it — set those directly, see above). The secret is identified by `s3.externalSecret.secretName`. |
-| `s3.externalSecret.secretName` | string | — | Name of the secret in the external store. Required when `s3.externalSecret.enabled` is `true`. Must be a JSON object with keys `bucket_name`, `endpoint`, `access_key` (base64-encoded), `secret_key` (base64-encoded). |
-
-### `bebot.mariadb.restore`
-
-A one-shot mariadb-operator `Restore` CR that restores the **existing, live** MariaDB instance from a `Backup`. Requires `bebot.mariadb.backup.enabled`. Turn `enabled` on, `helm upgrade`, wait for it to complete, then turn it back off — it is not meant to be left on permanently.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `false` | Trigger a restore into the live MariaDB instance. |
-| `targetRecoveryTime` | string | `""` | Optional RFC3339 timestamp to restore a specific point in time instead of the latest backup. |
-
-### `bebot.mariadb.bootstrapFrom`
-
-Seeds a **brand-new** MariaDB instance automatically from the latest `Backup` at creation time (`spec.bootstrapFrom` on the `MariaDB` CR) — the disaster-recovery path if the MariaDB CR/PVC is ever lost and recreated. Requires `bebot.mariadb.backup.enabled`. Safe to leave enabled permanently: it has no effect on an already-existing instance.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | bool | `false` | Bootstrap a fresh MariaDB instance from the latest backup. |
-| `targetRecoveryTime` | string | `""` | Optional RFC3339 timestamp to bootstrap from a specific point in time instead of the latest backup. |
+Each bot instance using this server gets its own database and user, created by a `db-setup` init container that runs idempotently on every bot start. An instance with `mariadbHost` set skips it, so its database and user must already exist.
 
 ### `bebot`
 
@@ -149,7 +89,7 @@ Seeds a **brand-new** MariaDB instance automatically from the latest `Backup` at
 | `guildId` | int | Anarchy Online guild/org ID. |
 | `mariadbUser` | string | MySQL user for this instance. |
 | `mariadbDatabase` | string | MySQL database for this instance. |
-| `mariadbHost` | string | MySQL server host for this instance. Leave unset to use this release's shared in-cluster MariaDB (`<release>-mariadb`). Set to point this instance at a different/external MySQL-compatible server; when set, this chart won't create a `Database`/`User`/`Grant` CR for it. |
+| `mariadbHost` | string | MySQL server host for this instance. Leave unset to use this release's shared in-cluster MariaDB (`<release>-mariadb`). Set to point this instance at a different/external MySQL-compatible server; its database and user must already exist there. |
 | `mariadbPort` | int | MySQL port for this instance. Leave unset to use the default (3306). |
 | `mariadbSsl` | bool | Connect to `mariadbHost` over SSL/TLS. Required by most managed database providers (DigitalOcean, AWS RDS, etc). Requires a bot image built from a BeBot version with SSL support (`$ssl`/`$ssl_ca` in `Mysql.conf`). |
 | `mariadbSslCa` | string | Optional path (inside the bot container) to a CA certificate bundle to verify the server's certificate against when `mariadbSsl` is true. Left unset, the connection is still encrypted but the certificate isn't verified. |
@@ -281,7 +221,7 @@ When using `createSecret: false`, Kubernetes may try to start pods before the Ex
 
 ### ArgoCD (recommended)
 
-All ExternalSecret resources carry `argocd.argoproj.io/sync-wave: "-1"`, the `MariaDB`/`Backup` CRs and bot Deployments carry `sync-wave: "1"`, and the per-instance `Database`/`User`/`Grant` CRs carry `sync-wave: "2"`. ArgoCD waits for each wave's resources to be healthy before applying the next wave, and its built-in ExternalSecret health check waits for `Ready: True` — so nothing is created until the secrets and MariaDB instance it depends on are ready.
+All ExternalSecret resources carry `argocd.argoproj.io/sync-wave: "-1"`, the MariaDB `StatefulSet`/`Service` carry `sync-wave: "0"`, and bot Deployments carry `sync-wave: "1"`. ArgoCD waits for each wave's resources to be healthy before applying the next wave, and its built-in ExternalSecret health check waits for `Ready: True` — so nothing is created until the secrets and MariaDB instance it depends on are ready.
 
 ### Plain Helm
 
@@ -301,10 +241,6 @@ A helper script generates GCP Secret Manager payloads interactively. Each subcom
 # Main credentials secret (bot instances + MariaDB root):
 python charts/bebot/tools/generate-gcp-secret.py secrets --print-to-stdout | \
   gcloud secrets versions add bebot-secrets --data-file=-
-
-# S3 backup credentials (separate secret — reference via s3.externalSecret.secretName):
-python charts/bebot/tools/generate-gcp-secret.py s3-creds --print-to-stdout | \
-  gcloud secrets versions add bebot-s3-creds --data-file=-
 
 # Registry pull credentials (separate secret):
 python charts/bebot/tools/generate-gcp-secret.py registry --print-to-stdout | \
@@ -337,26 +273,6 @@ The expected keys are:
 
 Registry pull credentials use a **separate** GCP secret with a single `dockerconfigjson` key. Reference it from `extraObjects` in your values file.
 
-### S3 Backup Secret
-
-S3 backup credentials live in their own dedicated external secret, separate from the main credentials secret. Point to it with `bebot.mariadb.backup.s3.externalSecret.secretName`. The secret must be a JSON object where `access_key` and `secret_key` are base64-encoded strings:
-
-```json
-{
-  "bucket_name": "my-backup-bucket",
-  "endpoint":    "https://s3.example.com",
-  "access_key":  "<base64-encoded access key>",
-  "secret_key":  "<base64-encoded secret key>"
-}
-```
-
-| Key | Used by |
-|---|---|
-| `bucket_name` | S3 backup ExternalSecret → `bucket` key in the credentials secret |
-| `endpoint` | S3 backup ExternalSecret → `endpoint` key in the credentials secret |
-| `access_key` | S3 backup ExternalSecret → `access-key-id` (decoded from base64) |
-| `secret_key` | S3 backup ExternalSecret → `secret-access-key` (decoded from base64) |
-
 ---
 
 ## Deployment Examples
@@ -367,17 +283,6 @@ Ready-to-use values files are provided in the [`examples/`](examples/) directory
 |---|---|
 | [`values-baked-secrets.yaml`](charts/bebot/examples/values-baked-secrets.yaml) | All credentials in values — simplest setup, dev/local use |
 | [`values-external-secrets.yaml`](charts/bebot/examples/values-external-secrets.yaml) | All credentials from GCP Secret Manager via ExternalSecrets |
-| [`values-backup-pvc.yaml`](charts/bebot/examples/values-backup-pvc.yaml) | Backup overlay — dump databases to a PVC |
-| [`values-backup-s3.yaml`](charts/bebot/examples/values-backup-s3.yaml) | Backup overlay — dump databases and sync to S3 |
-| [`values-mariadb-restore.yaml`](charts/bebot/examples/values-mariadb-restore.yaml) | Restore overlay — on-demand restore or automatic bootstrap-from-backup |
-
-The backup files are designed as overlays — layer them on top of a base values file:
-
-```bash
-helm install my-bebot . \
-  -f examples/values-external-secrets.yaml \
-  -f examples/values-backup-s3.yaml
-```
 
 ---
 
@@ -392,7 +297,6 @@ bebot:
   mariadb:
     enabled: true
     persistence:
-      enabled: true
       size: 2Gi
 
   imageRepository: "ghcr.io/my-org/ao-bebot"
@@ -432,7 +336,7 @@ python charts/bebot/tools/generate-gcp-secret.py secrets --print-to-stdout | \
   gcloud secrets versions add my-bebot-secrets --data-file=-
 ```
 
-The script prompts for each bot instance's credentials, the shared MariaDB root password, and optionally S3 credentials. All values are stored as plain text.
+The script prompts for each bot instance's credentials, and the shared MariaDB root password. All values are stored as plain text.
 
 #### 2. Configure values.yaml
 
@@ -448,7 +352,6 @@ bebot:
   mariadb:
     enabled: true
     persistence:
-      enabled: true
       size: 2Gi
     # Pull root credentials from GCP instead of auto-generating them.
     createSecret: false

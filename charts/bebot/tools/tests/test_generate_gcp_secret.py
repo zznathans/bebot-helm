@@ -149,17 +149,6 @@ class TestCmdSecrets:
         assert data["guild1_mariadb_database"] == "db1"
         assert data["guild2_mariadb_database"] == "db2"
 
-    def test_s3_keys_not_in_main_secret(self, capsys):
-        data = self._run(capsys, instances=[{
-            "name": "pfs", "ao_password": "aopass",
-            "mariadb_user": "pfsuser", "mariadb_password": "dbpass",
-            "mariadb_database": "pfsdb",
-        }])
-        assert "s3_access_key" not in data
-        assert "s3_secret_key" not in data
-        assert "access_key" not in data
-        assert "secret_key" not in data
-
     def test_no_base64_in_output(self, capsys):
         data = self._run(capsys, instances=[{
             "name": "pfs", "ao_password": "plainpass",
@@ -175,48 +164,6 @@ class TestCmdSecrets:
                     f"Value looks base64-encoded: {value}"
             except Exception:  # pylint: disable=broad-except
                 pass  # Not valid base64 — fine, it's plain text
-
-
-# ---------------------------------------------------------------------------
-# cmd_s3_creds
-# ---------------------------------------------------------------------------
-
-class TestCmdS3Creds:
-    def _run(self, capsys, bucket="my-bucket", endpoint="", ak="AKID123", sk="SAK456"):
-        endpoint_input = endpoint if endpoint else ""
-        with patch("builtins.input", side_effect=[bucket, endpoint_input, ak]), \
-             patch("getpass.getpass", return_value=sk):
-            script.cmd_s3_creds(make_args(print_to_stdout=True))
-        return json.loads(capsys.readouterr().out)
-
-    def test_required_keys_present(self, capsys):
-        data = self._run(capsys)
-        assert "bucket_name" in data
-        assert "endpoint" in data
-        assert "access_key" in data
-        assert "secret_key" in data
-
-    def test_bucket_and_endpoint_are_plain_text(self, capsys):
-        data = self._run(capsys, bucket="my-bucket", endpoint="https://s3.example.com")
-        assert data["bucket_name"] == "my-bucket"
-        assert data["endpoint"] == "https://s3.example.com"
-
-    def test_access_key_is_base64_encoded(self, capsys):
-        data = self._run(capsys, ak="AKID123")
-        assert data["access_key"] == base64.b64encode(b"AKID123").decode()
-
-    def test_secret_key_is_base64_encoded(self, capsys):
-        data = self._run(capsys, sk="SAK456")
-        assert data["secret_key"] == base64.b64encode(b"SAK456").decode()
-
-    def test_decoded_values_match_input(self, capsys):
-        data = self._run(capsys, ak="my-access-key", sk="my-secret-key")
-        assert base64.b64decode(data["access_key"]).decode() == "my-access-key"
-        assert base64.b64decode(data["secret_key"]).decode() == "my-secret-key"
-
-    def test_empty_endpoint_stored_as_empty_string(self, capsys):
-        data = self._run(capsys, endpoint="")
-        assert data["endpoint"] == ""
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,52 @@
+suite: mariadb db-setup init container
+templates:
+  - bebot/bebot-deployment.yaml
+tests:
+  - it: adds a db-setup init container reading the instance's and root credentials
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: db-setup
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: mariadb:11.4
+      - contains:
+          path: spec.template.spec.initContainers[1].env
+          content:
+            name: MARIADB_HOST
+            value: RELEASE-NAME-mariadb
+      - contains:
+          path: spec.template.spec.initContainers[1].env
+          content:
+            name: MARIADB_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-mariadb-root
+                key: root-password
+      - contains:
+          path: spec.template.spec.initContainers[1].env
+          content:
+            name: MARIADB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-conf-mybot
+                key: mariadb_password
+
+  - it: skips db-setup when the instance uses an external mariadbHost
+    set:
+      bebot.instances:
+        - name: mybot
+          enabled: true
+          mariadbHost: external-mysql.example.com
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1
+
+  - it: skips db-setup when the in-cluster mariadb is disabled
+    set:
+      bebot.mariadb.enabled: false
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.initContainers
+          count: 1

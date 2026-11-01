@@ -8,20 +8,12 @@ Subcommands (each produces a separate GCP secret):
   secrets    Main credentials: bot instance passwords, MariaDB root credentials.
              All values are plain-text strings.
 
-  s3-creds   S3 backup credentials: bucket_name, endpoint, access_key,
-             secret_key. access_key and secret_key are base64-encoded in the
-             output to match the chart's ExternalSecret decodingStrategy.
-
   registry   Container registry pull credentials (dockerconfigjson).
 
 Usage:
   # Main bebot credentials:
   python tools/generate-gcp-secret.py secrets --print-to-stdout | \\
     gcloud secrets versions add bebot-secrets --data-file=-
-
-  # S3 backup credentials (separate secret, referenced by s3.externalSecret.secretName):
-  python tools/generate-gcp-secret.py s3-creds --print-to-stdout | \\
-    gcloud secrets versions add bebot-s3-creds --data-file=-
 
   # Registry pull credentials:
   python tools/generate-gcp-secret.py registry --print-to-stdout | \\
@@ -150,37 +142,6 @@ def cmd_secrets(args: argparse.Namespace) -> None:
     write_output(data, args)
 
 
-def cmd_s3_creds(args: argparse.Namespace) -> None:
-    """
-    S3 backup credentials payload (separate GCP secret).
-
-    Produces the dedicated secret referenced by
-    bebot.mariadb.backup.s3.externalSecret.secretName. The chart's
-    ExternalSecret uses decodingStrategy: Base64 for access_key and
-    secret_key, so those values are base64-encoded in this payload.
-    bucket_name and endpoint are stored as plain text.
-    """
-    section(
-        "S3 Backup Credentials",
-        "Credentials for the S3-compatible backup destination.\n"
-        "  Upload this as the secret named by s3.externalSecret.secretName.",
-    )
-
-    bucket   = prompt_value("Bucket name")
-    endpoint = prompt_value("Endpoint URL (leave blank for AWS S3)", default="")
-    ak       = prompt_value("Access key ID")
-    sk       = prompt_secret("Secret access key")
-
-    data = {
-        "bucket_name": bucket,
-        "endpoint":    endpoint,
-        "access_key":  base64.b64encode(ak.encode()).decode(),
-        "secret_key":  base64.b64encode(sk.encode()).decode(),
-    }
-
-    write_output(data, args)
-
-
 def cmd_registry(args: argparse.Namespace) -> None:
     """
     Container registry pull credentials (separate GCP secret).
@@ -224,7 +185,6 @@ def cmd_registry(args: argparse.Namespace) -> None:
 
 COMMANDS = {
     "secrets":   (cmd_secrets,   "All bebot credentials in one consolidated payload"),
-    "s3-creds":  (cmd_s3_creds,  "S3 backup credentials (separate secret, base64-encoded keys)"),
     "registry":  (cmd_registry,  "Container registry pull credentials (dockerconfigjson)"),
 }
 

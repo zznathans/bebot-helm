@@ -47,6 +47,52 @@ spec:
             - name: bebot-conf-secret
               mountPath: /secret
               readOnly: true
+        {{- if and $.Values.bebot.mariadb.enabled (not .mariadbHost) }}
+        - name: db-setup
+          image: {{ $.Values.bebot.mariadb.image }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+{{ $.Files.Get "files/mariadb-setup.sh" | indent 14 }}
+          env:
+            - name: MARIADB_HOST
+              value: {{ $.Release.Name }}-mariadb
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-mariadb-root
+                  key: root-password
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_user
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_password
+            - name: MARIADB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-conf-{{ .name }}
+                  key: mariadb_database
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+        {{- end }}
       terminationGracePeriodSeconds: {{ $.Values.bebot.terminationGracePeriodSeconds | default 60 }}
       dnsConfig:
         options:

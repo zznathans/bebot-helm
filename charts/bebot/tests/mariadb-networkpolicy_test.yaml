@@ -32,45 +32,20 @@ tests:
               matchLabels:
                 app: RELEASE-NAME-mybot
 
-  - it: does not open ingress to the whole namespace by default
-    asserts:
-      - notContains:
-          path: spec.ingress[0].from
-          content:
-            podSelector: {}
-
-  - it: opens ingress to the whole namespace when backup is enabled
-    set:
-      bebot.mariadb.backup.enabled: true
+  - it: allows ingress from labelled helm test pods
     asserts:
       - contains:
           path: spec.ingress[0].from
           content:
-            podSelector: {}
+            podSelector:
+              matchLabels:
+                RELEASE-NAME-mariadb-client: "true"
 
-  - it: opens ingress to the whole namespace when restore is enabled
-    set:
-      bebot.mariadb.backup.enabled: true
-      bebot.mariadb.restore.enabled: true
+  - it: only opens the MariaDB port
     asserts:
-      - contains:
-          path: spec.ingress[0].from
-          content:
-            podSelector: {}
-
-  - it: opens ingress to the whole namespace when bootstrapFrom is enabled
-    set:
-      bebot.mariadb.backup.enabled: true
-      bebot.mariadb.bootstrapFrom.enabled: true
-    asserts:
-      - contains:
-          path: spec.ingress[0].from
-          content:
-            podSelector: {}
-
-  - it: adds metrics ingress rule when metrics are enabled
-    set:
-      bebot.mariadb.metrics.enabled: true
-    asserts:
-      - isNotEmpty:
-          path: spec.ingress[1]
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 3306
