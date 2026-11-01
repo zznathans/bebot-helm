@@ -1,4 +1,4 @@
-name: Cut Release
+name: Release
 
 # Stage 2 of 2 - see prepare-release.yaml for the full explanation. Fires
 # once a "chore(release): X.Y.Z" PR (opened by prepare-release.yaml) merges,
