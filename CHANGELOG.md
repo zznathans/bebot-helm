@@ -1,3 +1,25 @@
+## 3.0.0 (2026-11-01)
+
+# [3.0.0](https://github.com/zznathans/bebot-helm/compare/2.28.20...3.0.0) (2026-11-01)
+
+
+* feat(bot)!: replace mariadb-operator with a single-pod MariaDB ([67b8a3a](https://github.com/zznathans/bebot-helm/commit/67b8a3ab5caefbf246437d9bf82ca3131fc37b31))
+
+
+### BREAKING CHANGES
+
+* bebot.mariadbOperator and bebot.mariadb.backup, restore,
+bootstrapFrom, metrics, persistence.enabled, rootUser and rootHost are
+removed, along with the s3-creds helper. The removed values are ignored
+rather than rejected. Existing releases must delete their MariaDB CR during
+the upgrade; the StatefulSet reattaches the existing PVC.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+
+
+
+
 ## 2.28.20 (2026-08-08)
 
 ## [2.28.20](https://github.com/zznathans/bebot-helm/compare/2.28.19...2.28.20) (2026-08-08)

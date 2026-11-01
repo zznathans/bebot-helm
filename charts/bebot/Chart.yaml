@@ -5,9 +5,9 @@ name: bebot
 description: Helm chart for bebot
 type: application
 
-appVersion: 2.28.20
+appVersion: 3.0.0
 
-version: 2.28.20
+version: 3.0.0
 
 dependencies:
   - name: redis-operator
