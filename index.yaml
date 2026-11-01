@@ -2,6 +2,21 @@ apiVersion: v1
 entries:
   bebot:
   - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2026-11-01T19:59:03.977107607Z"
+    dependencies:
+    - condition: bebot.redisOperator.enabled,bebot.redis.enabled
+      name: redis-operator
+      repository: https://ot-container-kit.github.io/helm-charts/
+      version: 0.24.0
+    description: Helm chart for bebot
+    digest: 6c183b9b01ccff7429cb76abf4f5b02cc419e1e0692ab124baf7019b92939a64
+    name: bebot
+    type: application
+    urls:
+    - https://github.com/zznathans/bebot-helm/releases/download/bebot-3.0.0/bebot-3.0.0.tgz
+    version: 3.0.0
+  - apiVersion: v2
     appVersion: 2.28.20
     created: "2026-08-08T23:22:36.814473596Z"
     dependencies:
@@ -1665,4 +1680,4 @@ entries:
     urls:
     - https://github.com/zznathans/bebot-helm/releases/download/bebot-1.0.2/bebot-1.0.2.tgz
     version: 1.0.2
-generated: "2026-08-08T23:22:36.814656513Z"
+generated: "2026-11-01T19:59:03.977626198Z"
