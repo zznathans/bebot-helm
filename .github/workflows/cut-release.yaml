@@ -50,7 +50,7 @@ jobs:
           ref: main
           token: ${{ secrets.RELEASE_PAT }}
 
-      - uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6
+      - uses: cycjimmy/semantic-release-action@ad51787758d9654d5a75150a89a6fa9b3ccef95e # v6
         with:
           semantic_version: 25
         env:
